@@ -193,7 +193,7 @@ private static Random random;
 	    outstat.close();
 	    in.close();
 	}catch(IOException io){
-	    System.out.println("error in IO ");
+	    System.out.println("error in IO. You need to have created <tablename>.det file");
 	    System.exit(1);
 	}
 

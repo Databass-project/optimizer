@@ -1,0 +1,6 @@
+.idea/*
+classes/*
+optimizer.iml
+out/
+testcases/*
+lib/*
