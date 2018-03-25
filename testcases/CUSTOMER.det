@@ -1,0 +1,7 @@
+5
+100
+cid INTEGER 200 PK 4 
+sex INTEGER 2 NK 4 
+firstname STRING 10 NK 20  
+lastname STRING 10 NK 20 
+Address STRING 26 NK 52 

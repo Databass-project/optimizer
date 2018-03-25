@@ -1,0 +1,6 @@
+4
+100
+billid INTEGER 200 PK 4
+iid INTEGER 200 FK 4
+amount INTEGER 2500 NK 4
+remarks STRING 44 NK 88

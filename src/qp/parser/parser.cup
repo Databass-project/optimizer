@@ -1,0 +1,213 @@
+
+import java_cup.runtime.*;
+import java.util.*;
+
+//import SMA5503.IR.*;
+
+/* user code portion  */
+parser code {: 
+	
+
+	public SQLQuery query;
+	
+	public SQLQuery getSQLQuery(){
+	return query;
+	}
+
+
+	 public void report_fatal_error(String   message, Object   info)
+	 	    throws java.lang.Exception
+		{
+	 	      /* stop parsing (not really necessary since we throw an exception, but) */
+	 	      done_parsing();
+	 	
+	 	      /* use the normal error message reporting to put out the message */
+	 	      report_error("Fatal error occurred, stop parsing.", info);
+	 	
+	 	}
+	 
+	 	public void syntax_error(Symbol cur_token){}
+	
+:}
+
+action code {:
+
+:}
+
+
+/* Terminals (tokens returned by the scanner). */
+terminal 	TokenValue ID;
+terminal        COMMA,SEMI,DOT,STAR;
+terminal      	LESSTHAN, GREATERTHAN,LTOE,GTOE,EQUAL,NOTEQUAL,AND,OR;     
+terminal	SELECT,FROM,WHERE,GROUPBY,DISTINCT;
+terminal 	TokenValue STRINGLIT;
+
+/* Non terminals */	
+nonterminal SQLQuery sqlquery;
+nonterminal Vector attlist;
+nonterminal Attribute attribute;
+nonterminal Vector tablelist;
+nonterminal Vector conditionlist;
+nonterminal Condition condition;
+nonterminal Condition op;
+
+
+/* The grammar */
+
+sqlquery ::= sqlquery:s  GROUPBY attlist:a
+		{:
+		s.setGroupByList(a);
+		parser.query=s;
+	
+		:}
+	     | SELECT attlist:a FROM tablelist:t WHERE conditionlist:c
+		{:
+		 Vector v1= new Vector();
+		SQLQuery sq = new SQLQuery(a,t,c);
+	         parser.query=sq;
+		RESULT=sq;
+		:}
+	     | SELECT STAR FROM tablelist:t WHERE conditionlist:c
+		{:
+	          Vector a = new Vector();
+	          SQLQuery sq = new SQLQuery(a,t,c);
+		parser.query=sq;
+		RESULT=sq;
+		:}	
+             | SELECT attlist:a FROM tablelist:t 
+                {:
+                 Vector v1= new Vector();
+                SQLQuery sq = new SQLQuery(a,t);
+                 parser.query=sq;
+                RESULT=sq;
+                :}
+             | SELECT STAR FROM tablelist:t 
+                {:
+                  Vector a = new Vector();
+                  SQLQuery sq = new SQLQuery(a,t);
+                parser.query=sq;
+                RESULT=sq;
+                :}
+		;
+
+attlist ::= attlist:as COMMA attribute:a
+	         {:
+		  as.add(a);
+		  RESULT=as;
+		  :}
+	 	|attribute:at 
+		{:
+		Vector v = new Vector();
+		v.add(at);
+		RESULT = v;
+		:}
+		;
+
+tablelist ::= tablelist:tlist COMMA ID:i
+	      {:
+		tlist.add(i.text());
+		RESULT=tlist;
+	       :}
+	      | ID:i
+	      {:
+		Vector tlist = new Vector();
+		tlist.add(i.text());
+		RESULT=tlist;
+	      :}
+	       ;
+
+conditionlist ::= conditionlist:clist COMMA condition:c
+		{:
+		clist.add(c);
+		RESULT=clist;
+		:}
+		|condition:c
+		{:
+		Vector clist = new Vector();
+		clist.add(c);
+	        RESULT=clist;
+		:}
+		;
+
+
+condition::= attribute:at op:o STRINGLIT:s
+	     {:
+		Condition c= new Condition(at,o.getExprType(),s.text());
+		c.setOpType(Condition.SELECT);
+		RESULT=c;
+
+	     :}
+	     |attribute:a1 op:o attribute:a2
+	     {:
+		Condition c= new Condition(a1,o.getExprType(),a2);
+		c.setOpType(Condition.JOIN);
+		RESULT=c;
+	      :}	
+		|attribute:at error:p
+		{:
+		System.out.println("syntax error: incorrect condition");
+		System.exit(0);
+		:}
+		|error:p STRINGLIT:s
+		{:
+		System.out.println("syntax error: incorrect condition:"+s.text());
+		System.exit(0);
+		:}	
+		;
+
+
+attribute::= ID:i1 DOT ID:i2
+		{:
+		RESULT= new Attribute(i1.text(),i2.text());
+		:}
+		|ID:i error:p
+		{:
+		System.out.println("syntax error: incorrect attribute:"+ i.text());
+		System.exit(0);
+		:}
+		;
+
+op::= 	
+	LESSTHAN
+	{:
+	RESULT=new Condition(Condition.LESSTHAN);
+	:}
+	|GREATERTHAN
+	{:
+	RESULT=new Condition(Condition.GREATERTHAN);
+	:}
+	|LTOE
+	{:
+	RESULT=new Condition(Condition.LTOE);
+	:}
+	|GTOE
+	{:
+	RESULT=new Condition(Condition.GTOE);
+	:}
+	|NOTEQUAL
+	{:	
+	  RESULT = new Condition(Condition.NOTEQUAL);
+	:}
+	|EQUAL
+	{:
+	 RESULT=new Condition(Condition.EQUAL);
+	:}
+	;	
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

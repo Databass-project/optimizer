@@ -1,0 +1,13 @@
+PACKAGE = qp.utils
+
+SOURCE = \
+	Attribute.java \
+	Batch.java \
+	Condition.java \
+	RandNumb.java \
+	Schema.java \
+	Tuple.java \
+	Debug.java \
+	SQLQuery.java \
+
+include $(QP_DEV_ROOT)/Makefile

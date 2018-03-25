@@ -1,0 +1,6 @@
+4
+100
+cartid INTEGER 200 PK 4
+cid INTEGER 200 FK 4
+status STRING 8 NK 16
+remarks STRING 38 NK 76

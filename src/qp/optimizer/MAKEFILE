@@ -1,0 +1,10 @@
+PACKAGE = qp.optimizer
+
+SOURCE = \
+	BufferManager.java \
+	PlanCost.java \
+	RandomInitialPlan.java \
+	RandomOptimizer.java \
+	
+
+include $(QP_DEV_ROOT)\Makefile

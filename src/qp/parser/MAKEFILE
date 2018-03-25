@@ -1,0 +1,10 @@
+PACKAGE = qp.parser
+
+SOURCE = \
+	parser.java \
+	Scaner.java \
+	sym.java \
+	TokenValue.java \
+	
+
+include $(QP_DEV_ROOT)\Makefile
