@@ -1,8 +1,4 @@
-/**
- * performs randomized optimization, iterative improvement algorithm
- **/
-
-
+/* performs randomized optimization, iterative improvement algorithm  */
 package qp.optimizer;
 
 import qp.utils.*;
@@ -28,16 +24,12 @@ public class RandomOptimizer {
     int numJoin;          // Number of joins in this query plan
 
 
-    /** constructor **/
-
     public RandomOptimizer(SQLQuery sqlquery) {
         this.sqlquery = sqlquery;
     }
 
 
     /** Randomly selects a neighbour **/
-
-
     protected Operator getNeighbor(Operator root) {
         //Randomly select a node to be altered to get the neighbour
         int nodeNum = RandNumb.randInt(0, numJoin - 1);
@@ -66,15 +58,11 @@ public class RandomOptimizer {
      **/
 
     public Operator getOptimizedPlan() {
-
-        /** get an initial plan for the given sql query **/
-
         RandomInitialPlan rip = new RandomInitialPlan(sqlquery);
         numJoin = rip.getNumJoins();
 
         int MINCOST = Integer.MAX_VALUE;
         Operator finalPlan = null;
-
 
         /** NUMTER is number of times random restart **/
 
@@ -85,10 +73,7 @@ public class RandomOptimizer {
             NUMITER = 1;
         }
 
-        /** Randomly restart the gradient descent until
-         ** the maximum specified number of random restarts (NUMITER)
-         ** has satisfied
-         **/
+        /* Randomly restart the gradient descent until the maximum specified number of random restarts (NUMITER) has satisfied */
 
         for (int j = 0; j < NUMITER; j++) {
             Operator initPlan = rip.prepareInitialPlan();
@@ -152,10 +137,9 @@ public class RandomOptimizer {
                 System.out.println(" " + minNeighborCost);
 
             }
-            if (minNeighborCost < MINCOST) {
+            if (minNeighborCost <= MINCOST) { // modified < to <=
                 MINCOST = minNeighborCost;
                 finalPlan = minNeighbor;
-
             }
         }
         System.out.println("\n\n\n");

@@ -19,85 +19,17 @@ public class QueryMain {
             System.exit(1);
         }
 
-        /* Enter the number of bytes per page */
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        System.out.println("enter the number of bytes per page");
-        String temp;
-        try {
-            temp = in.readLine();
-            int pagesize = Integer.parseInt(temp);
-            Batch.setPageSize(pagesize);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        getNumBytesPerPage(in);
 
         String queryfile = args[0];
         String resultfile = args[1];
-        FileInputStream source = null;
-        try {
-            source = new FileInputStream(queryfile);
-        } catch (FileNotFoundException ff) {
-            System.out.println("File not found: " + queryfile);
-            System.exit(1);
-        }
+        SQLQuery sqlquery = getSqlQuery(queryfile);
 
-
-        /* scan the query */
-        Scaner sc = new Scaner(source);
-        parser p = new parser();
-        p.setScanner(sc);
-
-
-        /* parse the query */
-        try {
-            p.parse();
-        } catch (Exception e) {
-            System.out.println("Exception occurred while parsing");
-            System.exit(1);
-        }
-
-        /* SQLQuery is the result of the parsing */
-
-        SQLQuery sqlquery = p.getSQLQuery();
         int numJoin = sqlquery.getNumJoin();
+        BufferManager bm = setNumBuffers(in, numJoin);
 
-
-        /* If there are joins, then assign buffers to each join operator while preparing the plan */
-        /* As buffer manager is not implemented, just input the number of buffers available */
-        if (numJoin != 0) {
-            System.out.println("enter the number of buffers available");
-            try {
-                temp = in.readLine();
-                int numBuff = Integer.parseInt(temp);
-                BufferManager bm = new BufferManager(numBuff, numJoin);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-
-        /* Check the number of buffers available is enough */
-        int numBuff = BufferManager.getBuffersPerJoin();
-        if (numJoin > 0 && numBuff < 3) {
-            System.out.println("Minimum 3 buffers are required per a join operator ");
-            System.exit(1);
-        }
-
-
-        /* This part is used When some random initial plan is required instead of comple optimized plan **/
-        /*
-
-         RandomInitialPlan rip = new RandomInitialPlan(sqlquery);
-         Operator logicalroot = rip.prepareInitialPlan();
-         PlanCost pc = new PlanCost();
-         int initCost = pc.getCost(logicalroot);
-         Debug.PPrint(logicalroot);
-         System.out.print("   "+initCost);
-         System.out.println();
-         */
-
-
+        /* This is the part we are interested in */
         /* Use random Optimization algorithm to get a random optimized execution plan */
 
         RandomOptimizer ro = new RandomOptimizer(sqlquery);
@@ -107,7 +39,6 @@ public class QueryMain {
             System.exit(1);
         }
 
-
         /* preparing the execution plan */
         Operator root = RandomOptimizer.makeExecPlan(logicalroot);
 
@@ -115,20 +46,9 @@ public class QueryMain {
         Debug.PPrint(root);
         System.out.println();
 
-        /* Ask user whether to continue execution of the program */
-        System.out.println("enter 1 to continue, 0 to abort ");
+        confirmExec(in);
 
-        try {
-            temp = in.readLine();
-            int flag = Integer.parseInt(temp);
-            if (flag == 0) {
-                System.exit(1);
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        System.out.println("Starting operation now...");
         long starttime = System.currentTimeMillis();
 
         if (!root.open()) {
@@ -142,13 +62,20 @@ public class QueryMain {
             System.exit(1);
         }
 
+        writeResultToFile(root);
 
-        /* print the schema of the result */
+        out.close();
+
+        long endtime = System.currentTimeMillis();
+        double executiontime = (endtime - starttime) / 1000.0;
+        System.out.println("Execution time = " + executiontime);
+    }
+
+    private static void writeResultToFile(Operator root) {
         Schema schema = root.getSchema();
         numAtts = schema.getNumCols();
         printSchema(schema);
         Batch resultbatch;
-
 
         /* print each tuple in the result */
         while ((resultbatch = root.next()) != null) {
@@ -157,12 +84,85 @@ public class QueryMain {
             }
         }
         root.close();
-        out.close();
+    }
 
-        long endtime = System.currentTimeMillis();
-        double executiontime = (endtime - starttime) / 1000.0;
-        System.out.println("Execution time = " + executiontime);
+    private static BufferManager setNumBuffers(BufferedReader in, int numJoin) {
+        /* If there are joins, then assign buffers to each join operator while preparing the plan */
+        /* As buffer manager is not implemented, just input the number of buffers available */
+        BufferManager bm = null;
+        if (numJoin != 0) {
+            System.out.println("enter the number of buffers available");
+            try {
+                String temp = in.readLine();
+                int numBuff = Integer.parseInt(temp);
+                bm = new BufferManager(numBuff, numJoin);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
 
+        /* Check the number of buffers available is enough */
+        int numBuff = BufferManager.getBuffersPerJoin();
+        if (numJoin > 0 && numBuff < 3) {
+            System.out.println("Minimum 3 buffers are required per join operator ");
+            System.exit(1);
+        }
+        return bm;
+    }
+
+    private static SQLQuery getSqlQuery(String queryfile) {
+        FileInputStream source = ReadQueryFile(queryfile);
+
+        Scaner sc = new Scaner(source);
+        parser p = new parser();
+        p.setScanner(sc);
+
+        try {
+            p.parse();
+        } catch (Exception e) {
+            System.out.println("Exception occurred while parsing");
+            System.exit(1);
+        }
+
+        /* SQLQuery is the result of the parsing */
+        return p.getSQLQuery();
+    }
+
+    private static FileInputStream ReadQueryFile(String queryfile) {
+        FileInputStream source = null;
+        try {
+            source = new FileInputStream(queryfile);
+        } catch (FileNotFoundException ff) {
+            System.out.println("File not found: " + queryfile);
+            System.exit(1);
+        }
+        return source;
+    }
+
+    private static void getNumBytesPerPage(BufferedReader in) {
+        System.out.println("enter the number of bytes per page");
+        try {
+            String temp = in.readLine();
+            int pagesize = Integer.parseInt(temp);
+            Batch.setPageSize(pagesize);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void confirmExec(BufferedReader in) {
+        System.out.println("enter 1 to continue, 0 to abort ");
+        try {
+            String temp = in.readLine();
+            int flag = Integer.parseInt(temp);
+            if (flag == 0) {
+                System.exit(1);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     /**
@@ -196,10 +196,3 @@ public class QueryMain {
     }
 
 }
-
-
-
-
-
-
-
