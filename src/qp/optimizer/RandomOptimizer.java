@@ -346,8 +346,6 @@ public class RandomOptimizer {
 
     /** modifies the schema of operators which are modified due to selecing an alternative neighbor plan **/
     private void modifySchema(Operator node) {
-
-
         if (node.getOpType() == OpType.JOIN) {
             Operator left = ((Join) node).getLeft();
             Operator right = ((Join) node).getRight();
@@ -367,11 +365,8 @@ public class RandomOptimizer {
     }
 
 
-    /** AFter finding a choice of method for each operator
-     prepare an execution plan by replacing the methods with
-     corresponding join operator implementation
-     **/
-
+    /** After finding a choice of method for each operator, prepare an execution plan by replacing the methods with corresponding join operator implementation
+     */
     public static Operator makeExecPlan(Operator node) {
 
         if (node.getOpType() == OpType.JOIN) {
@@ -381,33 +376,33 @@ public class RandomOptimizer {
             int numbuff = BufferManager.getBuffersPerJoin();
             switch (joinType) {
                 case JoinType.NESTEDJOIN:
+//                    NestedJoin nj = new NestedJoin((Join) node);
+//                    nj.setLeft(left);
+//                    nj.setRight(right);
+//                    nj.setNumBuff(numbuff);
+//                    return nj;
 
+                case JoinType.HASHJOIN:
+                case JoinType.SORTMERGE:
+                case JoinType.BLOCKNESTED:
                     NestedJoin nj = new NestedJoin((Join) node);
                     nj.setLeft(left);
                     nj.setRight(right);
                     nj.setNumBuff(numbuff);
+//                    BlockNestedJoin bnj = new BlockNestedJoin((Join) node);
+//                    bnj.setLeft(left);
+//                    bnj.setRight(right);
+//                    bnj.setNumBuff(numbuff);
                     return nj;
 
-                /** Temporarity used simple nested join,
-                 replace with hasjoin, if implemented **/
+//                case JoinType.SORTMERGE:
+//                    NestedJoin sm = new NestedJoin((Join) node);
+//                    return sm;
 
-                case JoinType.BLOCKNESTED:
+//                case JoinType.HASHJOIN:
+//                    NestedJoin hj = new NestedJoin((Join) node);
+//                    return hj;
 
-                    NestedJoin bj = new NestedJoin((Join) node);
-                    /* + other code */
-                    return bj;
-
-                case JoinType.SORTMERGE:
-
-                    NestedJoin sm = new NestedJoin((Join) node);
-                    /* + other code */
-                    return sm;
-
-                case JoinType.HASHJOIN:
-
-                    NestedJoin hj = new NestedJoin((Join) node);
-                    /* + other code */
-                    return hj;
                 default:
                     return node;
             }

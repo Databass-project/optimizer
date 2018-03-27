@@ -10,7 +10,7 @@ import java.io.Serializable;
 public class Batch implements Serializable {
 
     int MAX_SIZE;  // Number of tuples per page
-    static int PageSize;  /* Number of bytes per page**/
+    static int PageSize;  /* Number of bytes per page */
 
     Vector tuples; // The tuples in the page
 
@@ -82,16 +82,3 @@ public class Batch implements Serializable {
             return false;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
