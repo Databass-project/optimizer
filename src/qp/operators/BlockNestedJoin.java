@@ -189,9 +189,9 @@ public class BlockNestedJoin extends Join {
         int numTuplesInLeftTable = 0;
         for (int i = 0; i < numBuff-2; i++) {
             Batch next = left.next();
-            if (next == null)
+            if (next == null) 
                 break;
-            numTuplesInLeftTable = next.size(); // this will remain constant
+            numTuplesInLeftTable = next.size(); // this will remain constant -> why?
             nextBatches.add(next);
         }
         if (nextBatches.size() == 0) // no batches were added
