@@ -159,7 +159,7 @@ public class BlockNestedJoin extends Join {
                     }
                     eosr = true;
                 } catch (ClassNotFoundException c) {
-                    System.out.println("BlockNestedJoin: Some error in deserialization ");
+                    System.out.println("BlockNestedJoin: Some error in deserialization");
                     System.exit(1);
                 } catch (IOException io) {
                     System.out.println("BlockNestedJoin: temporary file reading error");
@@ -186,17 +186,15 @@ public class BlockNestedJoin extends Join {
      */
     public Batch fetchNextBlock() {
         ArrayList<Batch> nextBatches = new ArrayList<>();
-        int numTuplesInLeftTable = 0;
         for (int i = 0; i < numBuff-2; i++) {
             Batch next = left.next();
             if (next == null) 
                 break;
-            numTuplesInLeftTable = next.size(); // this will remain constant -> why?
             nextBatches.add(next);
         }
         if (nextBatches.size() == 0) // no batches were added
             return null;
-        Batch nextBlock = new Batch(numTuplesInLeftTable*nextBatches.size());
+        Batch nextBlock = new Batch(batchsize*nextBatches.size());
         for(Batch b: nextBatches) {
             for (int j = 0; j < b.size(); j++) {
                 nextBlock.add(b.elementAt(j));
