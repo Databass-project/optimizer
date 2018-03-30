@@ -141,17 +141,17 @@ public final class MergeSortJoin extends Join {
      * creates leftBatch whose size is at most numBuffers.
      * @return batch representing next block. Null if no batch was read.
      */
-    public Batch fetchNextBlock(ObjectInputStream in, int numPages) { 
+    private Batch fetchNextBlock(ObjectInputStream in, int numBatches) { 
         try {
         	ArrayList<Batch> batches = new ArrayList<>();
-		    for (int i = 0; i < numPages; i++) {    
+		    for (int i = 0; i < numBatches; i++) {    
 		        Batch next = (Batch) in.readObject(); 
 		        batches.add(next);
 		    }
 		    if (batches.size() == 0) {
 		    	return null;
 		    }
-		    Batch nextBlock = new Batch(numPages*batchsize);
+		    Batch nextBlock = new Batch(numBatches*batchsize);
 		    for (Batch b: batches) {
 		    	for(int i = 0; i < b.size(); i++) {
 		    		nextBlock.add(b.elementAt(i));
@@ -167,6 +167,23 @@ public final class MergeSortJoin extends Join {
         }
     }
     
+    private ArrayList<Batch> getBatches(Batch nextBlock) {
+    	ArrayList<Batch> batches = new ArrayList<>();
+    	Batch nextBatch = new Batch(batchsize);
+		nextBatch.add(nextBlock.elementAt(0)); // should be safe
+		
+		for (int i = 1; i < nextBlock.size(); i++) {
+			if (i % batchsize == 0) {
+				batches.add(nextBatch); 
+				nextBatch = new Batch(batchsize);	
+			}
+			nextBatch.add(nextBlock.elementAt(i));
+		}
+		batches.add(nextBatch); // add last batch
+    	
+    	return batches;
+    }
+    
     private int compareTuples(Tuple left, Tuple right) { 
     	int tuplesize = schema.getTupleSize();
 		for(int index = 0; index < tuplesize; index++) {
@@ -179,9 +196,8 @@ public final class MergeSortJoin extends Join {
 	}
     
     private void sortBatch(Batch b) {
-    	
     	Vector<Tuple> tuples = new Vector<>(b.size());
-    	for(int i = 0; i < b.size(); i++) {
+    	for (int i = 0; i < b.size(); i++) {
     		tuples.add(b.elementAt(i));
     	}
     	
@@ -208,14 +224,9 @@ public final class MergeSortJoin extends Join {
     			nextBlock = fetchNextBlock(in,numRead);
     			sortBatch(nextBlock);
     			
-    			Batch nextBatch = new Batch(batchsize);
-    			nextBatch.add(nextBlock.elementAt(0)); // should be safe
-    			for (int i = 1; i < nextBlock.size(); i++) {
-    				if (i % batchsize == 0) {
-    					tmpw.writeObject(nextBatch);
-    					nextBatch.clear();	
-    				}
-    				nextBatch.add(nextBlock.elementAt(i));
+    			ArrayList<Batch> batches = getBatches(nextBlock);
+    			for(Batch nextBatch: batches) {
+    				tmpw.writeObject(nextBatch);
     			}
     			
     			leftToRead -= numRead;
@@ -243,52 +254,42 @@ public final class MergeSortJoin extends Join {
 	    }
     }
     
-    // got it wrong, when any Batch is empty, load next one from memory
-    private ArrayList<Batch> mergeSortedRuns(ArrayList<Batch> sortedRuns) {
-    	outbatch.clear();
-    	ArrayList<Batch> output = new ArrayList<>();
-    	ArrayList<Tuple> headTuples = new ArrayList<>();
-    	for (int i = 0; i < sortedRuns.size(); i++) {
-    		headTuples.add(sortedRuns.get(i).elementAt(0));
-    		sortedRuns.get(i).remove(0);
-    	}
-    	
-    	while(sortedRuns.size() > 0) {
-    		if (outbatch.isFull()) {
-    			// write outbatch and clear
-    			output.add(outbatch); // write directly to file?
-    			outbatch.clear();
-    		}
-    		
-    	}
-    	return output;
-    }
-    
-    private boolean mergePhase(String filename, int nbrRuns) {
+    private boolean mergePhase(String filename, int numPages) {
     	// Problem with having contiguous Buffer (instead of B-1) -> no direct access to sub-buffers 
     	outbatch = new Batch(batchsize);
-    	try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(filename))) {
+    	try {
+    		
+    		ObjectInputStream in;
     		
     		outbatch = new Batch(batchsize);
     		
-    		int runsToMerge = nbrRuns;
-    		int startingSize = numBuff;
-    		while(runsToMerge > 1) {
-    			for(int i = 0; i < (numBuff-1); i++) { // Math.pow (numBuff-1), jth iteration, starts at 1
-    				Batch nextBatch = (Batch) in.readObject();
+    		ArrayList<ArrayList<Batch>> sortedRuns = new ArrayList<>();
+    		
+    		int maxPagesPerRun = numBuff;
+    		
+    		while (maxPagesPerRun < numPages) { // condition not entirely correct?
+    			in = new ObjectInputStream(new FileInputStream(filename));
+    			sortedRuns.clear();
+    			
+    			int leftToRead = numPages;
+    			while (leftToRead > 0) {
+    				int numRead = (leftToRead < maxPagesPerRun)? leftToRead : maxPagesPerRun;
+    				Batch nextBlock = fetchNextBlock(in,numRead);
+    				sortedRuns.add(getBatches(nextBlock));
     				
+    				leftToRead -= numRead;
     			}
+    			
+    			// At this point we have our sorted runs
+    			
+    			maxPagesPerRun *= (numBuff-1);
     		}
     		
+    		return true;
     	} catch (IOException io){
     		System.out.println("MergeSortJoin: writing the temporary file error");
             return false;
-    	} catch (ClassNotFoundException c) {
-	        System.out.println("MergeSortJoin: Some error in deserialization ");
-	        return false;
-	    }
-    	
-    	return true;
+    	} 
     }
     
     private boolean mergeSort(String filename) {
