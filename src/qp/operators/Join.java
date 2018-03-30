@@ -88,12 +88,6 @@ public class Join extends Operator {
         jn.setNodeIndex(nodeIndex);
         jn.setNumBuff(numBuff);
         return jn;
-
     }
 
 }
-
-
-
-
-

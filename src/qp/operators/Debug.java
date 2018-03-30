@@ -1,7 +1,3 @@
-/**
- * This class to print various information
- **/
-
 package qp.operators;
 
 import qp.utils.*;
@@ -82,7 +78,6 @@ public class Debug {
                     System.out.print("HashJoin(");
                     break;
             }
-            //System.out.print("Join(");
             PPrint(((Join) node).getLeft());
             System.out.print("  [");
             PPrint(((Join) node).getCondition());
@@ -133,6 +128,10 @@ public class Debug {
             PPrint(b.elementAt(i));
             System.out.println();
         }
+    }
+
+    public static void printWithLines(String str) {
+        System.out.println("--------------------" + str + "--------------------");
     }
 
 }

@@ -9,30 +9,29 @@ import java.util.Hashtable;
 import java.util.Enumeration;
 import java.io.*;
 
-public class RandomInitialPlan {
-
-    SQLQuery sqlquery;
+public class OperatorUtils {
+    private SQLQuery sqlquery;
 
     /**
      * list of attributes to be projected
      */
-    Vector projectlist;
-    Vector fromlist;
-    Vector selectionlist;
-    Vector joinlist;
-    Vector groupbylist;
-    int numJoin;    // Number of joins in this query
+    private Vector<Attribute> projectlist;
+    private Vector<String> fromlist;
+    private Vector<Condition> selectionlist;
+    private Vector<Condition> joinlist;
+    private Vector groupbylist;
+    private int numJoin;    // Number of joins in this query
 
-    Hashtable tab_op_hash; //table name to the Operator
-    Operator root; // root of the query plan tree
+    private Hashtable<String, Operator> tableNameToOperator;
+    private Operator root; // root of the query plan tree
 
-    public RandomInitialPlan(SQLQuery sqlquery) {
+    public OperatorUtils(SQLQuery sqlquery) {
         this.sqlquery = sqlquery;
 
-        projectlist = (Vector) sqlquery.getProjectList();
-        fromlist = (Vector) sqlquery.getFromList();
-        selectionlist = sqlquery.getSelectionList();
-        joinlist = sqlquery.getJoinList();
+        projectlist = (Vector<Attribute>) sqlquery.getProjectList();
+        fromlist = (Vector<String>) sqlquery.getFromList();
+        selectionlist = (Vector<Condition>) sqlquery.getSelectionList();
+        joinlist = (Vector<Condition>) sqlquery.getJoinList();
         groupbylist = sqlquery.getGroupByList();
         numJoin = joinlist.size();
     }
@@ -44,11 +43,15 @@ public class RandomInitialPlan {
         return numJoin;
     }
 
+    public Operator getOperator(String tableName) {
+        return tableNameToOperator.get(tableName);
+    }
+
     /**
      * @return prepare initial plan for the query
      **/
     public Operator prepareInitialPlan() {
-        tab_op_hash = new Hashtable();
+        tableNameToOperator = new Hashtable<>();
 
         createScanOp();
         createSelectOp();
@@ -94,7 +97,7 @@ public class RandomInitialPlan {
             System.err.println("RandomInitialPlan:Error reading Schema of the table: " + filename);
             System.exit(1);
         }
-        tab_op_hash.put(tabname, op1);
+        tableNameToOperator.put(tabname, op1);
     }
 
     /**
@@ -108,7 +111,7 @@ public class RandomInitialPlan {
             if (cn.getOpType() == Condition.SELECT) { // the other type is Join
                 String tabname = cn.getLhs().getTabName();
 
-                Operator baseOperator = (Operator) tab_op_hash.get(tabname);
+                Operator baseOperator = (Operator) tableNameToOperator.get(tabname);
                 newOperator = new Select(baseOperator, cn, OpType.SELECT);
                 /* set the schema same as base relation */
                 newOperator.setSchema(baseOperator.getSchema());
@@ -122,7 +125,7 @@ public class RandomInitialPlan {
     }
 
     /**
-     * create join operators
+     * create join operators. This is the only function that actually contains randomness
      **/
     public void createJoinOp() {
         BitSet bitCList = new BitSet(numJoin);
@@ -135,11 +138,11 @@ public class RandomInitialPlan {
                 jnnum = RandNumb.randInt(0, numJoin - 1);
             }
             Condition cn = (Condition) joinlist.elementAt(jnnum);
-            String lefttab = cn.getLhs().getTabName(); // this is why you need the table name to be the same
+            String lefttab = cn.getLhs().getTabName();
             String righttab = ((Attribute) cn.getRhs()).getTabName();
 
-            Operator left = (Operator) tab_op_hash.get(lefttab);
-            Operator right = (Operator) tab_op_hash.get(righttab);
+            Operator left = (Operator) tableNameToOperator.get(lefttab);
+            Operator right = (Operator) tableNameToOperator.get(righttab);
             newJoin = new Join(left, right, cn, OpType.JOIN);
             newJoin.setNodeIndex(jnnum);
             Schema jointSchema = left.getSchema().joinWith(right.getSchema());
@@ -175,12 +178,12 @@ public class RandomInitialPlan {
      * @param newOp new operator to replace the key-value mapping in place of old operator
      */
     private void updateHashtable(Operator oldOp, Operator newOp) {
-        Enumeration e = tab_op_hash.keys();
+        Enumeration e = tableNameToOperator.keys();
         while (e.hasMoreElements()) {
             String key = (String) e.nextElement();
-            Operator temp = (Operator) tab_op_hash.get(key);
+            Operator temp = (Operator) tableNameToOperator.get(key);
             if (temp == oldOp) {
-                tab_op_hash.put(key, newOp);
+                tableNameToOperator.put(key, newOp);
             }
         }
     }

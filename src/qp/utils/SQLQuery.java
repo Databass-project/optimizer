@@ -1,29 +1,20 @@
-/**
- * the format of the parse SQL query, also see readme file
- **/
-
-
+/* the format of the parse SQL query, also see readme file */
 package qp.utils;
 
 import java.util.Vector;
 
 public class SQLQuery {
 
-
     Vector projectList;     //List of project attributes from select clause
     Vector fromList;        // List of tables in from clause
     Vector conditionList;   // List of conditions appeared in where clause
 
-    /** represent again the the selection and join conditions
-     in separate lists
-     **/
-
+    /*represent again the the selection and join conditions in separate lists */
     Vector selectionList;    //List of select predicates
     Vector joinList;           //List of join predicates
 
     Vector groupbyList;        //List of attributes in GROUP BY clause
     boolean isDistinct = false;   // Whether distinct key word appeared in select clause
-
 
     public SQLQuery(Vector list1, Vector list2, Vector list3, Vector list4) {
         projectList = list1;
@@ -31,7 +22,6 @@ public class SQLQuery {
         conditionList = list3;
         groupbyList = list4;
         splitConditionList(conditionList);
-
     }
 
     public SQLQuery(Vector list1, Vector list2, Vector list3) {
@@ -53,9 +43,9 @@ public class SQLQuery {
         selectionList = new Vector();
     }
 
-
-    /** split the condition list into selection, and join list **/
-
+    /**
+     * split the condition list into selection, and join list
+     **/
     protected void splitConditionList(Vector tempVector) {
         selectionList = new Vector();
         joinList = new Vector();
@@ -68,7 +58,6 @@ public class SQLQuery {
         }
     }
 
-
     public void setIsDistinct(boolean flag) {
         isDistinct = flag;
     }
@@ -76,7 +65,6 @@ public class SQLQuery {
     public boolean isDistinct() {
         return isDistinct;
     }
-
 
     public Vector getProjectList() {
         return projectList;

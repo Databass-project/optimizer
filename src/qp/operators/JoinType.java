@@ -15,9 +15,8 @@ public class JoinType {
     public static final int INDEXNESTED = 4;
 
     public static int numJoinTypes() {
-        return 1;
-
-        // return k for k joins
+        return 2;
+        // we need to change this depending on how many join algos to implement
     }
 
 }
