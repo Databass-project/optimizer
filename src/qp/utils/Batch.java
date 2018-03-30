@@ -82,8 +82,16 @@ public class Batch implements Serializable {
             return false;
     }
     
-    // Newly defined method
+    // Newly defined methods
     public Vector<Tuple> getTuples() {
     	return (Vector<Tuple>) tuples;
+    }
+    
+    public Tuple head() {
+    	return this.elementAt(0);
+    }
+    
+    public void removeHead() {
+    	this.remove(0);
     }
 }
