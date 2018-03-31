@@ -40,7 +40,7 @@ public class DPoptimizer {
     private void getBestPlan() {
         int numJoinsTaken = 0;
         boolean[] isJoinTaken = new boolean[joinConditions.size()];
-        getBestPlan(operatorMap, costMap, isJoinTaken, numJoinsTaken);
+        //getBestPlan(operatorMap, costMap, isJoinTaken, numJoinsTaken);
     }
 
     private void getBestPlan(HashMap<Set<String>, Operator> operatorMap, HashMap<Set<String>, Integer> costMap, boolean[] isJoinTaken, int numJoinsTaken, Operator op) {
@@ -50,8 +50,8 @@ public class DPoptimizer {
 
         }
         // pick a join condition
-        Condition jc = chooseJoinCondition(,isJoinTaken);
-        String tableToAdd =  ((Attribute) jc.getRhs()).getTabName();
+        //Condition jc = chooseJoinCondition(,isJoinTaken);
+        //String tableToAdd =  ((Attribute) jc.getRhs()).getTabName();
 
 
     }
@@ -82,8 +82,8 @@ public class DPoptimizer {
             String tableName = (String) table;
 
             Operator tableOp = util.getOperator(tableName);
-            operatorMap.put(new SettableName, tableOp);
-            costMap.put(tableName, pc.getCost(tableOp));
+            //operatorMap.put(new SettableName, tableOp);
+            //costMap.put(tableName, pc.getCost(tableOp));
         }
     }
 
