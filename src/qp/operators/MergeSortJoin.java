@@ -44,7 +44,7 @@ public final class MergeSortJoin extends Join {
     ObjectInputStream sortedRight; 
     
     Batch outBatch;
-    Batch leftBatch; // Problem with this -> double mem space
+    Batch leftBatch; // Problem with this -> double mem space?
     Batch[] rightBatches; // Problem with this -> double mem space?
     int[] batchSizes; 
     
@@ -107,7 +107,7 @@ public final class MergeSortJoin extends Join {
     
     private String temporaryFileName() {
     	filenum++;
-        String filename = "NJtemp-" + String.valueOf(filenum);
+        String filename = "MSJtemp-" + String.valueOf(filenum);
     	return filename;
     }
     
@@ -130,7 +130,7 @@ public final class MergeSortJoin extends Join {
             System.out.println("MergeSortJoin: writing the temporary file error");
             return false;
         }
-        if (!right.close())
+        if (!left.close())
             return false;
 
         return true;
@@ -477,7 +477,7 @@ public final class MergeSortJoin extends Join {
     // Delete temporary files
     public boolean close() {
     	for (int fnum = 1; fnum <= filenum; fnum++) {
-    		String filename = "NJtemp-" + String.valueOf(fnum);
+    		String filename = "MSJtemp-" + String.valueOf(fnum);
     		File f = new File(filename);
     	    f.delete();
     	}
