@@ -20,7 +20,7 @@ public class RandomInitialPlan {
     Vector fromlist;
     Vector selectionlist;
     Vector joinlist;
-    Vector groupbylist;
+    Vector orderbylist;
     int numJoin;    // Number of joins in this query
 
     Hashtable tab_op_hash; //table name to the Operator
@@ -33,7 +33,7 @@ public class RandomInitialPlan {
         fromlist = (Vector) sqlquery.getFromList();
         selectionlist = sqlquery.getSelectionList();
         joinlist = sqlquery.getJoinList();
-        groupbylist = sqlquery.getGroupByList();
+        orderbylist = sqlquery.getOrderByList();
         numJoin = joinlist.size();
     }
 
@@ -56,6 +56,7 @@ public class RandomInitialPlan {
             createJoinOp();
         }
         createProjectOp();
+        createOrderByOp();
         return root;
     }
 
@@ -80,6 +81,18 @@ public class RandomInitialPlan {
         }
     }
 
+    /**
+     * Create OrderBy Operator for the attributes mentioned in from list
+     **/
+    public void createOrderByOp() {
+        Operator base = root;
+        /* The last selection is the root of the plan tree constructed thus far */
+        if (orderbylist.size() != 0){
+        	root = new OrderBy(base, orderbylist, OpType.ORDERBY);
+        	root.setSchema(base.getSchema());
+        }
+    }
+    
     /**
      * Read the schema of the table from tablename.md file (md = metadata)
      **/
