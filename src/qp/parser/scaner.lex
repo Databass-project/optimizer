@@ -50,7 +50,7 @@ STRING_LITERAL=\"{CHAR}*\"
 }
    
 
-<YYINITIAL,NEGATE> GROUPBY {
+<YYINITIAL,NEGATE> ORDERBY {
   yybegin(YYINITIAL);
   return new Symbol(sym.GROUPBY,yyline,yychar,new TokenValue(yytext()));
 }
