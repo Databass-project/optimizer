@@ -8,4 +8,5 @@ public class OpType {
     public static final int PROJECT = 2;
     public static final int JOIN = 3;
     public static final int SORT = 4;
+    public static final int ORDERBY = 5;
 }

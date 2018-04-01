@@ -117,6 +117,7 @@ public class PlanCost {
         attrToV.put(leftjoinAttr, minDistinct);
         attrToV.put(leftjoinAttr, minDistinct);
 
+
         /* now calculate the cost of the operation */
         int joinType = node.getJoinType();
         /* number of buffers allotted to this join */

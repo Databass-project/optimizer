@@ -4,7 +4,6 @@ import qp.utils.*;
 import qp.operators.*;
 
 import java.util.Vector;
-import java.util.BitSet;
 import java.util.Hashtable;
 import java.util.Enumeration;
 import java.io.*;
@@ -32,7 +31,7 @@ public class OperatorUtils {
         fromlist = (Vector<String>) sqlquery.getFromList();
         selectionlist = (Vector<Condition>) sqlquery.getSelectionList();
         joinlist = (Vector<Condition>) sqlquery.getJoinList();
-        groupbylist = sqlquery.getGroupByList();
+        groupbylist = sqlquery.getOrderByList();
         numJoin = joinlist.size();
     }
 

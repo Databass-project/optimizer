@@ -355,6 +355,8 @@ public class RandomOptimizer {
                     break;
                 case JoinType.HASHJOIN:
                 case JoinType.SORTMERGE:
+                	joinOperator = new SortMerge((Join) node);
+                	break;
                 case JoinType.BLOCKNESTED:
                     joinOperator = new BlockNestedJoin((Join) node);
                     break;

@@ -38,6 +38,7 @@ public class DPoptimizer {
         computeSingleRelationPlan();
         if (numJoins > 0)
             computeJoinRelationPlan();
+
     }
 
     public Operator getBestPlan() {
@@ -97,7 +98,6 @@ public class DPoptimizer {
             Operator bestTree = operatorMap.values().iterator().next();
             return createProjectOp(bestTree);
         }
-
         Debug.printBold("\nThe operatorMap contains more than one operator tree");
         return null;
     }
