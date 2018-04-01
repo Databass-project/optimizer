@@ -28,7 +28,7 @@ public class QueryMain {
 
         int numJoin = sqlquery.getNumJoin();
         BufferManager bm = setNumBuffers(in, numJoin);
-        boolean runRandomized = false;
+        boolean runRandomized = true;
         Operator root;
         if (runRandomized) {
             /* This is the part we are interested in */
