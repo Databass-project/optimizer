@@ -71,9 +71,10 @@ public class Tuple implements Serializable {
 	    return ((Integer)leftdata).compareTo((Integer)rightdata);
 	}else if(leftdata instanceof String){
 	    return ((String)leftdata).compareTo((String)rightdata);
-
 	}else if(leftdata instanceof Float){
 	    return ((Float)leftdata).compareTo((Float)rightdata);
+	}else if(leftdata instanceof Long){
+	    return ((Long)leftdata).compareTo((Long)rightdata);
 	}else{
 	    System.out.println("Tuple: Unknown comparision of the tuples");
 	    System.exit(1);
