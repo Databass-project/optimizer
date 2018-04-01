@@ -74,7 +74,7 @@ public class RandomOptimizer {
             Operator initPlan = rip.prepareInitialPlan();
 
             modifySchema(initPlan);
-            Debug.printWithLines("initial plan");
+            Debug.printWithLines(false, "initial plan");
             Debug.PPrint(initPlan);
             PlanCost pc = new PlanCost();
             int initCost = pc.getCost(initPlan);
@@ -86,11 +86,11 @@ public class RandomOptimizer {
             if (numJoin != 0) {
 
                 while (flag) {   // flag = false when local minimum is reached
-                    Debug.printWithLines("while");
+                    Debug.printWithLines(false, "while");
                     Operator initPlanCopy = (Operator) initPlan.clone();
                     minNeighbor = getNeighbor(initPlanCopy);
 
-                    Debug.printWithLines("neighbour");
+                    Debug.printWithLines(false, "neighbour");
                     Debug.PPrint(minNeighbor);
                     pc = new PlanCost();
                     minNeighborCost = pc.getCost(minNeighbor);
@@ -101,7 +101,7 @@ public class RandomOptimizer {
                     for (int i = 1; i < 2 * numJoin; i++) {
                         initPlanCopy = (Operator) initPlan.clone();
                         Operator neighbor = getNeighbor(initPlanCopy);
-                        Debug.printWithLines("neighbour");
+                        Debug.printWithLines(false, "neighbour");
                         Debug.PPrint(neighbor);
                         pc = new PlanCost();
                         int neighborCost = pc.getCost(neighbor);
@@ -123,7 +123,7 @@ public class RandomOptimizer {
                         flag = false;   // local minimum reached
                     }
                 }
-                Debug.printWithLines("local minimum");
+                Debug.printWithLines(false, "local minimum");
                 Debug.PPrint(minNeighbor);
                 System.out.println(" " + minNeighborCost);
 
@@ -134,7 +134,7 @@ public class RandomOptimizer {
             }
         }
         System.out.println("\n\n\n");
-        Debug.printWithLines("final plan");
+        Debug.printWithLines(false, "final plan");
         Debug.PPrint(finalPlan);
         System.out.println("  " + MINCOST);
         return finalPlan;
@@ -146,7 +146,7 @@ public class RandomOptimizer {
      * @return the modified plan
      **/
     protected Operator neighborMeth(Operator root, int joinNum) {
-        Debug.printWithLines("neighbour by method change");
+        Debug.printWithLines(false, "neighbour by method change");
         int numJMeth = JoinType.numJoinTypes();
         if (numJMeth > 1) {
             /* find the node that is to be altered */
@@ -166,7 +166,7 @@ public class RandomOptimizer {
      * @return the modified plan
      **/
     protected Operator neighborCommut(Operator root, int joinNum) {
-        Debug.printWithLines("neighbour by commutative");
+        Debug.printWithLines(false, "neighbour by commutative");
         /*  find the node to be altered */
         Join node = (Join) findNodeAt(root, joinNum);
         Operator left = node.getLeft();
@@ -213,7 +213,7 @@ public class RandomOptimizer {
 
     /** This is given plan (A X B) X C **/
     protected void transformLefttoRight(Join op, Join left) {
-        Debug.printWithLines("left to right neighbour");
+        Debug.printWithLines(false, "left to right neighbour");
         Operator right = op.getRight();
         Operator leftleft = left.getLeft();
         Operator leftright = left.getRight();
@@ -223,7 +223,7 @@ public class RandomOptimizer {
         /* CASE 1 : ( A X a1b1 B) X b4c4  C     =  A X a1b1 (B X b4c4 C) a1b1,  b4c4 are the join conditions at that join operator */
 
         if (leftright.getSchema().contains(leftAttr)) {
-            Debug.printWithLines("CASE 1");
+            Debug.printWithLines(false, "CASE 1");
             temp = new Join(leftright, right, op.getCondition(), OpType.JOIN);
             temp.setJoinType(op.getJoinType());
             temp.setNodeIndex(op.getNodeIndex());
@@ -234,7 +234,7 @@ public class RandomOptimizer {
             op.setCondition(left.getCondition());
 
         } else {
-            Debug.printWithLines("CASE 2");
+            Debug.printWithLines(false, "CASE 2");
             /**CASE 2:   ( A X a1b1 B) X a4c4  C     =  B X b1a1 (A X a4c4 C)
              ** a1b1,  a4c4 are the join conditions at that join operator
              **/
@@ -252,7 +252,7 @@ public class RandomOptimizer {
     }
 
     protected void transformRighttoLeft(Join op, Join right) {
-        Debug.printWithLines("right to left neighbour");
+        Debug.printWithLines(false, "right to left neighbour");
         Operator left = op.getLeft();
         Operator rightleft = right.getLeft();
         Operator rightright = right.getRight();
@@ -262,7 +262,7 @@ public class RandomOptimizer {
          ** a1b1,  b4c4 are the join conditions at that join operator
          **/
         if (rightleft.getSchema().contains(rightAttr)) {
-            Debug.printWithLines("CASE 3");
+            Debug.printWithLines(false, "CASE 3");
             temp = new Join(left, rightleft, op.getCondition(), OpType.JOIN);
             temp.setJoinType(op.getJoinType());
             temp.setNodeIndex(op.getNodeIndex());
@@ -275,7 +275,7 @@ public class RandomOptimizer {
             /* CASE 4 :  A X a1c1 (B X b4c4  C)     =  (A X a1c1 C ) X c4b4 B
              * a1b1,  b4c4 are the join conditions at that join operator
              **/
-            Debug.printWithLines("CASE 4");
+            Debug.printWithLines(false, "CASE 4");
             temp = new Join(left, rightright, op.getCondition(), OpType.JOIN);
             temp.setJoinType(op.getJoinType());
             temp.setNodeIndex(op.getNodeIndex());

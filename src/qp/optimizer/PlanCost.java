@@ -21,7 +21,7 @@ public class PlanCost {
     /**
      * stores mapping from Attribute name to number of distinct values of that attribute
      **/
-    Hashtable attrToV;
+    Hashtable<Attribute, Integer> attrToV;
 
     public PlanCost() {
         attrToV = new Hashtable();
@@ -84,14 +84,24 @@ public class PlanCost {
         /* get size of the tuple in output & correspondingly calculate buffer capacity, i.e., number of tuples per page **/
         int tuplesize = node.getSchema().getTupleSize();
         int outcapacity = Batch.getPageSize() / tuplesize;
-        int leftuplesize = leftschema.getTupleSize();
-        int leftcapacity = Batch.getPageSize() / leftuplesize;
-        int righttuplesize = rightschema.getTupleSize();
-        int rightcapacity = Batch.getPageSize() / righttuplesize;
+        int leftTupleSizeInBytes = leftschema.getTupleSize();
+        int numTuplesPerPageForLeft = Batch.getPageSize() / leftTupleSizeInBytes;
+        int rightTupleSizeInBytes = rightschema.getTupleSize();
+        int numTuplesPerPageForRight = Batch.getPageSize() / rightTupleSizeInBytes;
 
-        int leftpages = (int) Math.ceil(((double) lefttuples) / (double) leftcapacity);
-        int rightpages = (int) Math.ceil(((double) righttuples) / (double) rightcapacity);
+        if (Batch.getPageSize() < leftTupleSizeInBytes || Batch.getPageSize() < rightTupleSizeInBytes) {
+            System.out.println("The buffer cannot hold entire tuple for right/left tables. Exiting now");
+            System.exit(1);
+        }
 
+        int leftpages = (int) Math.ceil(((double) lefttuples) / (double) numTuplesPerPageForLeft);
+        int rightpages = (int) Math.ceil(((double) righttuples) / (double) numTuplesPerPageForRight);
+
+//        Debug.printBold("\nleft schema");
+//        Debug.PPrint(leftschema);
+//        System.out.println();
+//        Debug.printBold("right schema");
+//        Debug.PPrint(rightschema);
         Attribute leftjoinAttr = con.getLhs();
         Attribute rightjoinAttr = (Attribute) con.getRhs();
         int leftattrind = leftschema.indexOf(leftjoinAttr);
@@ -99,13 +109,13 @@ public class PlanCost {
         leftjoinAttr = leftschema.getAttribute(leftattrind);
         rightjoinAttr = rightschema.getAttribute(rightattrind);
         /* number of distinct values of left and right join attribute */
-        int leftattrdistn = ((Integer) attrToV.get(leftjoinAttr)).intValue();
-        int rightattrdistn = ((Integer) attrToV.get(rightjoinAttr)).intValue();
+        int leftattrdistn =  attrToV.get(leftjoinAttr);
+        int rightattrdistn = attrToV.get(rightjoinAttr);
 
         int outtuples = (int) Math.ceil(((double) lefttuples * righttuples) / (double) Math.max(leftattrdistn, rightattrdistn));
-        int mindistinct = Math.min(leftattrdistn, rightattrdistn);
-        attrToV.put(leftjoinAttr, new Integer(mindistinct));
-        attrToV.put(leftjoinAttr, new Integer(mindistinct));
+        int minDistinct = Math.min(leftattrdistn, rightattrdistn);
+        attrToV.put(leftjoinAttr, minDistinct);
+        attrToV.put(leftjoinAttr, minDistinct);
 
         /* now calculate the cost of the operation */
         int joinType = node.getJoinType();
@@ -113,7 +123,9 @@ public class PlanCost {
 
         int numbuff = BufferManager.getBuffersPerJoin();
         int joincost;
-
+//        Debug.printPurple("#tuples per page on left = " + numTuplesPerPageForLeft + " #tuples per page on right = " + numTuplesPerPageForRight + "\n");
+//        Debug.printPurple("left tuples = " + lefttuples + " right tuples = " +  righttuples + "\n");
+        Debug.printPurple("left pages = " + leftpages + " right pages = " + rightpages + "\n");
         switch (joinType) {
             case JoinType.NESTEDJOIN:
                 joincost = leftpages + leftpages * rightpages;
@@ -141,15 +153,13 @@ public class PlanCost {
      * Selection is performed on the fly, so no cost involved
      **/
     protected int getStatistics(Select node) {
-        int intuples = calculateCost(node.getBase()); // recursive here
-
+        int intuples = calculateCost(node.getBase()); // recursive her
         if (!isFeasible) {
             return Integer.MAX_VALUE;
         }
 
         Condition con = node.getCondition();
         Schema schema = node.getSchema();
-
         Attribute attr = con.getLhs();
 
         int index = schema.indexOf(attr);
@@ -160,8 +170,7 @@ public class PlanCost {
 
         /* Get number of distinct values of selection attributes **/
 
-        Integer temp = (Integer) attrToV.get(fullattr);
-        int numdistinct = temp.intValue();
+        int numdistinct = attrToV.get(fullattr);
         int outtuples;
 
         /* calculate the number of tuples in result */
@@ -176,7 +185,7 @@ public class PlanCost {
         /* Modify the number of distinct values of each attribute, assuming the values are distributed uniformly along entire relation */
         for (int i = 0; i < schema.getNumCols(); i++) {
             Attribute attri = schema.getAttribute(i);
-            int oldvalue = ((Integer) attrToV.get(attri)).intValue();
+            int oldvalue = attrToV.get(attri);
             int newvalue = (int) Math.ceil(((double) outtuples / (double) intuples) * oldvalue);
             attrToV.put(attri, outtuples);
         }
@@ -199,34 +208,39 @@ public class PlanCost {
             System.out.println("Error in opening file" + filename);
             System.exit(1);
         }
+
+        int numtuples = getNumTuples(in);
+        mapAttrToV(schema, numAttr, in);
+
+        int tupleSizeInBytes = schema.getTupleSize();
+        int numTuplesPerPage = Batch.getPageSize() / tupleSizeInBytes;
+        int numpages = (int) Math.ceil((double) numtuples / (double) numTuplesPerPage);
+        cost += numpages;
+        try {
+            in.close();
+        } catch (IOException io) {
+            System.out.println("error in closing the file " + filename);
+            System.exit(1);
+        }
+
+//        Debug.printPurple("\nStatistics for table " + tablename + ": numTuples = " + numtuples + " tuple size = " + tupleSizeInBytes + " number of pages = " + numpages);
+        return numtuples;
+    }
+
+    private void mapAttrToV(Schema schema, int numAttr, BufferedReader in) {
+        StringTokenizer tokenizer;
+        String temp;
+
         String line = null;
-
-        // First line = number of tuples
         try {
             line = in.readLine();
         } catch (IOException io) {
-            System.out.println("Error in readin first line of " + filename);
-            System.exit(1);
-        }
-        StringTokenizer tokenizer = new StringTokenizer(line);
-        if (tokenizer.countTokens() != 1) {
-            System.out.println("incorrect format of statastics file " + filename);
-            System.exit(1);
-        }
-
-        String temp = tokenizer.nextToken();
-        /* number of tuples in this table; */
-        int numtuples = Integer.parseInt(temp);
-
-        try {
-            line = in.readLine();
-        } catch (IOException io) {
-            System.out.println("error in reading second line of " + filename);
+            System.out.println("error in reading second line");
             System.exit(1);
         }
         tokenizer = new StringTokenizer(line);
         if (tokenizer.countTokens() != numAttr) {
-            System.out.println("incorrect format of statastics file " + filename);
+            System.out.println("incorrect format of statastics file");
             System.exit(1);
         }
 
@@ -236,18 +250,28 @@ public class PlanCost {
             Integer distinctValues = Integer.valueOf(temp);
             attrToV.put(attr, distinctValues);
         }
-        /* number of tuples per page */
-        int tuplesize = schema.getTupleSize();
-        int pagesize = Batch.getPageSize() / tuplesize;
-        int numpages = (int) Math.ceil((double) numtuples / (double) pagesize);
-        cost = cost + numpages;
+    }
+
+    private int getNumTuples(BufferedReader in) {
+        String lineA = null;
+
+        // First line = number of tuples
         try {
-            in.close();
+            lineA = in.readLine();
         } catch (IOException io) {
-            System.out.println("error in closing the file " + filename);
+            System.out.println("Error in reading first line");
             System.exit(1);
         }
-        return numtuples;
+        StringTokenizer tokenizer = new StringTokenizer(lineA);
+        if (tokenizer.countTokens() != 1) {
+            System.out.println("incorrect format of statistics file");
+            System.exit(1);
+        }
+
+        String temp = tokenizer.nextToken();
+        /* number of tuples in this table; */
+        return Integer.parseInt(temp);
     }
+
 
 }

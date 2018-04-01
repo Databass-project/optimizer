@@ -12,8 +12,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Vector;
 
-import com.sun.org.apache.xerces.internal.impl.dv.xs.SchemaDateTimeException;
-
 import qp.utils.Attribute;
 import qp.utils.Batch;
 import qp.utils.Tuple;
