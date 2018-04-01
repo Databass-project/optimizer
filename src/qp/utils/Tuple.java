@@ -51,7 +51,7 @@ public class Tuple implements Serializable {
     }
     
     /** Compare two tuples in the same table on a given list of attributes **/
-    public static int compareTuplesWith(Tuple left, Tuple right, LinkedList<Integer> attrIndices) {
+    public static int compareTuplesWith(Tuple left, Tuple right, int[] attrIndices) {
     	for (int attrIndex: attrIndices) { 
 			int compareAtIndex = compareTuples(left, right, attrIndex);
 			if (compareAtIndex != 0) {
@@ -63,20 +63,21 @@ public class Tuple implements Serializable {
 
     /** comparing tuples in different tables, used for join condition checking **/
     public static int compareTuples( Tuple left,Tuple right, int leftIndex, int rightIndex){
-		Object leftdata = left.dataAt(leftIndex);
-		Object rightdata = right.dataAt(rightIndex);
-		if(leftdata instanceof Integer){
-		    return ((Integer)leftdata).compareTo((Integer)rightdata);
-		} else if(leftdata instanceof String){
-		    return ((String)leftdata).compareTo((String)rightdata);
-	
-		} else if(leftdata instanceof Float){
-		    return ((Float)leftdata).compareTo((Float)rightdata);
-		} else{
-		    System.out.println("Tuple: Unknown comparision of the tuples");
-		    System.exit(1);
-		    return 0;
-		}
+	Object leftdata = left.dataAt(leftIndex);
+	Object rightdata = right.dataAt(rightIndex);
+	if(leftdata instanceof Integer){
+	    return ((Integer)leftdata).compareTo((Integer)rightdata);
+	}else if(leftdata instanceof String){
+	    return ((String)leftdata).compareTo((String)rightdata);
+	}else if(leftdata instanceof Float){
+	    return ((Float)leftdata).compareTo((Float)rightdata);
+	}else if(leftdata instanceof Long){
+	    return ((Long)leftdata).compareTo((Long)rightdata);
+	}else{
+	    System.out.println("Tuple: Unknown comparision of the tuples");
+	    System.exit(1);
+	    return 0;
+	}
     }
 }
 

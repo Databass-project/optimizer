@@ -1,4 +1,5 @@
 import java.io.*;
+import java.sql.Time;
 import java.util.*;
 import qp.utils.*;
 /*
@@ -142,6 +143,8 @@ try{
 		    data.add(Integer.valueOf(dataElement));
 		}else if(datatype==Attribute.REAL){
 		    data.add(Float.valueOf(dataElement));
+		}else if(datatype==Attribute.TIME){
+		    data.add(Time.valueOf(dataElement).getTime());
 		}else if(datatype==Attribute.STRING){
 		    data.add(dataElement);
 		}else{

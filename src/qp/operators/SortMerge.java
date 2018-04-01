@@ -515,7 +515,6 @@ public final class SortMerge extends Join {
             	} else { // Load into memory
             		if (eosr) {
             			eosl = true;
-            			rcurs += 1;
             			return outBatch;
             		} else {
             			updateRightBatches();

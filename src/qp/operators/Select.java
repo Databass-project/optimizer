@@ -2,6 +2,7 @@ package qp.operators;
 
 import qp.utils.*;
 
+import java.sql.Time;
 import java.util.Vector;
 
 public class Select extends Operator {
@@ -163,6 +164,25 @@ public class Select extends Operator {
         } else if (datatype == Attribute.REAL) {
             float srcVal = ((Float) srcValue).floatValue();
             float checkVal = Float.parseFloat(checkValue);
+            if (exprtype == Condition.LESSTHAN) {
+                if (srcVal < checkVal) return true;
+            } else if (exprtype == Condition.GREATERTHAN) {
+                if (srcVal > checkVal) return true;
+            } else if (exprtype == Condition.LTOE) {
+                if (srcVal <= checkVal) return true;
+            } else if (exprtype == Condition.GTOE) {
+                if (srcVal >= checkVal) return true;
+            } else if (exprtype == Condition.EQUAL) {
+                if (srcVal == checkVal) return true;
+            } else if (exprtype == Condition.NOTEQUAL) {
+                if (srcVal != checkVal) return true;
+            } else {
+                System.out.println("Select:Incorrect condition operator");
+            }
+        } else if (datatype == Attribute.TIME) {
+        	float srcVal = ((Long) srcValue).longValue();
+            float checkVal = Time.valueOf(checkValue).getTime();
+            
             if (exprtype == Condition.LESSTHAN) {
                 if (srcVal < checkVal) return true;
             } else if (exprtype == Condition.GREATERTHAN) {

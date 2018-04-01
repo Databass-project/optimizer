@@ -2,6 +2,7 @@
 import java.util.*;
 import java.io.*;
 import qp.utils.*;
+import java.sql.Time;
 public class RandomDB{
 
 private static Random random;
@@ -92,7 +93,10 @@ private static Random random;
 		}else if(datatype[i].equals("STRING")){
 			type=Attribute.STRING;
 				    // System.out.println("String");
-		}else if(datatype[i].equals("REAL")){
+		}else if(datatype[i].equals("TIME")){
+			type=Attribute.TIME;
+		}
+		else if(datatype[i].equals("REAL")){
 			type=Attribute.REAL;
 		}else{
 		    type=-1;
@@ -145,14 +149,18 @@ private static Random random;
 
 		for(int j=1;j<numCol;j++){
 		    if(datatype[j].equals("STRING")){
-			String temp = rdb.randString(range[j]);
-			outtbl.print(temp+"\t");
-		    }else if(datatype[j].equals("FLOAT")){
-			float value = range[j]*random.nextFloat();
-			outtbl.print(value+"\t");
+		    	String temp = rdb.randString(range[j]);
+				outtbl.print(temp+"\t");
+		    }else if(datatype[j].equals("TIME")){
+		    	// 1 hours = 3600000 miliseconds
+		    	Time value = new Time((long) (range[j]*3600000*random.nextFloat())-28800000);
+				outtbl.print(value.toString()+"\t");
+		    }else if(datatype[j].equals("REAL")){// AN ERROR WAS HERE
+				float value = range[j]*random.nextFloat();
+				outtbl.print(value+"\t");
 		    }else if(datatype[j].equals("INTEGER")){
-			int value = random.nextInt(range[j]);
-			outtbl.print(value+"\t");
+		    	int value = random.nextInt(range[j]);
+		    	outtbl.print(value+"\t");
 			if(keytype[j].equals("FK")){
 			    fk[value]=true;
 			}
@@ -172,7 +180,9 @@ private static Random random;
 	    for(i=0;i<numCol;i++){
 		if(datatype[i].equals("STRING")){
 		    outstat.print(numtuple+"\t");
-		}else if(datatype[i].equals("FLOAT")){
+		}else if(datatype[i].equals("REAL")){//AN ERROR WAS HERE
+		    outstat.print(numtuple+"\t");
+		}else if(datatype[i].equals("TIME")){
 		    outstat.print(numtuple+"\t");
 		}else if(datatype[i].equals("INTEGER")){
 		    if(keytype[i].equals("PK")){
@@ -188,7 +198,7 @@ private static Random random;
 			    outstat.print(range[i]+"\t");
 		    }
 
-		}
+		  }
 	    }
 	    outstat.close();
 	    in.close();
