@@ -51,7 +51,7 @@ public class Tuple implements Serializable {
     }
     
     /** Compare two tuples in the same table on a given list of attributes **/
-    public static int compareTuplesWith(Tuple left, Tuple right, LinkedList<Integer> attrIndices) {
+    public static int compareTuplesWith(Tuple left, Tuple right, int[] attrIndices) {
     	for (int attrIndex: attrIndices) { 
 			int compareAtIndex = compareTuples(left, right, attrIndex);
 			if (compareAtIndex != 0) {
