@@ -131,7 +131,7 @@ public class RandomInitialPlan {
         }
         /* The last selection is the root of the plan tree constructed thus far */
         if (selectionlist.size() != 0)
-            root = newOperator;
+            root = newOperator; // if no join in query, it will simply be nested select operators
     }
 
     /**

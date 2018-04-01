@@ -13,14 +13,15 @@ public class SQLQuery {
     Vector selectionList;    //List of select predicates
     Vector joinList;           //List of join predicates
 
-    Vector groupbyList;        //List of attributes in GROUP BY clause
+    Vector orderbyList;        //List of attributes in GROUP BY clause
     boolean isDistinct = false;   // Whether distinct key word appeared in select clause
+
 
     public SQLQuery(Vector list1, Vector list2, Vector list3, Vector list4) {
         projectList = list1;
         fromList = list2;
         conditionList = list3;
-        groupbyList = list4;
+        orderbyList = list4;
         splitConditionList(conditionList);
     }
 
@@ -28,7 +29,7 @@ public class SQLQuery {
         projectList = list1;
         fromList = list2;
         conditionList = list3;
-        groupbyList = null;
+        orderbyList = null;
         splitConditionList(conditionList);
     }
 
@@ -38,7 +39,7 @@ public class SQLQuery {
         projectList = list1;
         fromList = list2;
         conditionList = null;
-        groupbyList = null;
+        orderbyList = null;
         joinList = new Vector();
         selectionList = new Vector();
     }
@@ -86,12 +87,12 @@ public class SQLQuery {
         return joinList;
     }
 
-    public void setGroupByList(Vector list) {
-        groupbyList = list;
+    public void setOrderByList(Vector list) {
+        orderbyList = list;
     }
 
-    public Vector getGroupByList() {
-        return groupbyList;
+    public Vector getOrderByList() {
+        return orderbyList;
     }
 
     public int getNumJoin() {

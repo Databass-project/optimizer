@@ -4,7 +4,6 @@ import qp.utils.*;
 import qp.operators.*;
 
 import java.util.Vector;
-import java.util.BitSet;
 import java.util.Hashtable;
 import java.util.Enumeration;
 import java.io.*;
@@ -22,7 +21,7 @@ public class OperatorUtils {
     private Vector groupbylist;
     private int numJoin;    // Number of joins in this query
 
-    private Hashtable<String, Operator> tableNameToOperator;
+    private Hashtable<String, Operator> tableNameToOperator = new Hashtable<>();
     private Operator root; // root of the query plan tree
 
     public OperatorUtils(SQLQuery sqlquery) {
@@ -32,8 +31,12 @@ public class OperatorUtils {
         fromlist = (Vector<String>) sqlquery.getFromList();
         selectionlist = (Vector<Condition>) sqlquery.getSelectionList();
         joinlist = (Vector<Condition>) sqlquery.getJoinList();
-        groupbylist = sqlquery.getGroupByList();
+        groupbylist = sqlquery.getOrderByList();
         numJoin = joinlist.size();
+    }
+
+    public Operator getRoot() {
+        return this.root;
     }
 
     /**
@@ -45,21 +48,6 @@ public class OperatorUtils {
 
     public Operator getOperator(String tableName) {
         return tableNameToOperator.get(tableName);
-    }
-
-    /**
-     * @return prepare initial plan for the query
-     **/
-    public Operator prepareInitialPlan() {
-        tableNameToOperator = new Hashtable<>();
-
-        createScanOp();
-        createSelectOp();
-        if (numJoin != 0) {
-            createJoinOp();
-        }
-        createProjectOp();
-        return root;
     }
 
     /**
@@ -94,7 +82,7 @@ public class OperatorUtils {
             op1.setSchema(schm);
             _if.close();
         } catch (Exception e) {
-            System.err.println("RandomInitialPlan:Error reading Schema of the table: " + filename);
+            System.err.println("OperatorUtils :Error reading Schema of the table: " + filename);
             System.exit(1);
         }
         tableNameToOperator.put(tabname, op1);
@@ -124,43 +112,6 @@ public class OperatorUtils {
             root = newOperator;
     }
 
-    /**
-     * create join operators. This is the only function that actually contains randomness
-     **/
-    public void createJoinOp() {
-        BitSet bitCList = new BitSet(numJoin);
-        int jnnum = RandNumb.randInt(0, numJoin - 1);
-        Join newJoin = null;
-        /* Repeat until all the join conditions are considered */
-        while (bitCList.cardinality() != numJoin) {
-            /* If this condition is already considered, choose another join condition */
-            while (bitCList.get(jnnum)) {
-                jnnum = RandNumb.randInt(0, numJoin - 1);
-            }
-            Condition cn = (Condition) joinlist.elementAt(jnnum);
-            String lefttab = cn.getLhs().getTabName();
-            String righttab = ((Attribute) cn.getRhs()).getTabName();
-
-            Operator left = (Operator) tableNameToOperator.get(lefttab);
-            Operator right = (Operator) tableNameToOperator.get(righttab);
-            newJoin = new Join(left, right, cn, OpType.JOIN);
-            newJoin.setNodeIndex(jnnum);
-            Schema jointSchema = left.getSchema().joinWith(right.getSchema());
-            newJoin.setSchema(jointSchema);
-            /* randomly select a join type */
-            int numJMeth = JoinType.numJoinTypes();
-            int joinMeth = RandNumb.randInt(0, numJMeth - 1);
-            newJoin.setJoinType(joinMeth);
-
-            updateHashtable(left, newJoin);
-            updateHashtable(right, newJoin);
-            bitCList.set(jnnum);
-        }
-        /* The last join operation is the root for the constructed till now */
-        if (numJoin != 0)
-            root = newJoin;
-    }
-
     public void createProjectOp() { // currently, no push-down of selection and projection
         Operator base = root;
         if (projectlist == null) // projectlist should normally be set in the constructor
@@ -186,6 +137,10 @@ public class OperatorUtils {
                 tableNameToOperator.put(key, newOp);
             }
         }
+    }
+
+    public Vector<Attribute> getProjectlist() {
+        return this.projectlist;
     }
 
 }
