@@ -1,6 +1,7 @@
 package qp.operators;
 
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -27,7 +28,6 @@ public final class SortMerge extends Join {
     String lfname;    // The file name where the left table is materialized
     String rfname;    // The file name where the right table is materialized
     LinkedList<String> runfnames; // File name of the sorted run files that need to be merged
-    int finalNumBatches;
 
     static int filenum = 0;   // To get unique filenum for this operation
 
@@ -103,8 +103,8 @@ public final class SortMerge extends Join {
 	        	System.out.println("Total number of tuples: " + numTuples);**/
 	        	if (mergeSort(lnumPages, lbatchsize, leftindex)) {
 	        		lfname = runfnames.removeFirst();
-	        		/**int numTuples = showFileContent(lfname, lnumPages, leftindex);
-	        		System.out.println("Left number of tuples: " + numTuples);**/
+	        		int numTuples = showFileContent(lfname, lnumPages, leftindex);
+	        		System.out.println("Left number of tuples: " + numTuples);
 		            sortedLeft = new ObjectInputStream(new FileInputStream(lfname));
 		            if (rightSortedRuns()) {
 			            /**numTuples = 0;
@@ -114,8 +114,8 @@ public final class SortMerge extends Join {
 			        	System.out.println("Total number of tuples: " + numTuples);**/
 			            if (mergeSort(rnumPages, rbatchsize, rightindex)) {
 				            rfname = runfnames.removeFirst();
-				            /**numTuples = showFileContent(rfname, rnumPages, rightindex);
-			        		System.out.println("Right number of tuples: " + numTuples);**/
+				            numTuples = showFileContent(rfname, rnumPages, rightindex);
+			        		System.out.println("Right number of tuples: " + numTuples);
 				            sortedRight = new ObjectInputStream(new FileInputStream(rfname));
 				            return true;
 		            	} else {
@@ -132,10 +132,11 @@ public final class SortMerge extends Join {
         	}
         } catch (IOException io) {
             System.out.println("SortMerge: temporary file reading error");
+            io.printStackTrace();
             return false;
-        } /**catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
         	return false;
-        }**/
+        }
         
     }
     
@@ -145,18 +146,24 @@ public final class SortMerge extends Join {
 		ObjectInputStream in = new ObjectInputStream(new FileInputStream(fname));
 		
 		for (int batchIndex = 0; batchIndex < numPages; batchIndex++) {
-			Batch nextBatch = (Batch) in.readObject();
-			for (Tuple nextTuple: nextBatch.getTuples()) {
-				System.out.println("Tuple Nr. " + tupleNumber++);
-				Object leftdata = nextTuple.dataAt(attrIndex);
-        		if(leftdata instanceof Integer){
-        		    System.out.println((Integer) leftdata);
-        		}else if(leftdata instanceof String){
-        			System.out.println((String) leftdata);
-
-        		}else if(leftdata instanceof Float){
-        			System.out.println((Float) leftdata);
-        		}
+			
+			try {
+				Batch nextBatch = (Batch) in.readObject();
+			
+				for (Tuple nextTuple: nextBatch.getTuples()) {
+					System.out.println("Tuple Nr. " + tupleNumber++);
+					Object leftdata = nextTuple.dataAt(attrIndex);
+	        		if(leftdata instanceof Integer){
+	        		    System.out.println((Integer) leftdata);
+	        		}else if(leftdata instanceof String){
+	        			System.out.println((String) leftdata);
+	
+	        		}else if(leftdata instanceof Float){
+	        			System.out.println((Float) leftdata);
+	        		}
+				}
+			} catch (EOFException eof){
+				break;
 			}
 		}
 		in.close();
@@ -215,25 +222,21 @@ public final class SortMerge extends Join {
     	
     	try {
 	    	Batch nextBatch;
-	    	numToRead = 0;
 	        while ((nextBatch = left.next()) != null) {
 	        	if (nextBatch.size() > 0) { // why necessary? bug
 	                if(nextBlock.isFull()) {
 	                	nextSortedRun(nextBlock, leftindex, lbatchsize);
 	            		nextBlock = new Batch(numBuff*lbatchsize);
-	            		numToRead = 0;
 	                }
 	                
 	                for(Tuple nextTuple: nextBatch.getTuples()) { // All pages of size batchsize
 	                	nextBlock.add(nextTuple);
 	                }
 	                lnumPages += 1;
-	                numToRead += 1;
 	        	}
 	        }
 	        
 	        nextSortedRun(nextBlock, leftindex, lbatchsize); // condition?
-	        finalNumBatches = numToRead; // explain
     	} catch (IOException io) {
             System.out.println("SortMerge: temporary file reading error");
             return false;
@@ -256,7 +259,6 @@ public final class SortMerge extends Join {
 
     	try {
 	    	Batch nextBatch;
-	    	numToRead = 0;
 	        while ((nextBatch = right.next()) != null) {
 	        	if (nextBatch.size() > 0) { // why necessary? bug
 	                if(nextBlock.isFull()) {
@@ -269,14 +271,13 @@ public final class SortMerge extends Join {
 	                	nextBlock.add(nextTuple);
 	                }
 	                rnumPages += 1;
-	                numToRead += 1;
 	        	}
 	        }
 	        
 	        nextSortedRun(nextBlock, rightindex, rbatchsize); // condition?
-	        finalNumBatches = numToRead; // explain
     	} catch (IOException io) {
             System.out.println("SortMerge: temporary file reading error");
+            io.printStackTrace();
             return false;
     	}
         
@@ -307,38 +308,29 @@ public final class SortMerge extends Join {
     	return minTupleIndex;
     }
     
-    private int writeRunsToMemory(Vector<ObjectInputStream> runFiles, int[] batchesPerRun, Batch[] inBatches, int runSize, boolean lastRun) 
+    private void writeRunsToMemory(Vector<ObjectInputStream> runFiles, Batch[] inBatches) 
     		throws IOException, ClassNotFoundException {
-    	
-    	int numBatchesToMerge = 0;
-    	
-    	String fname = ""; // explain
+
     	for (int runIndex = 0; runIndex < numToRead; runIndex++) {
-    		fname = runfnames.remove();
-			ObjectInputStream nextStream = new ObjectInputStream(new FileInputStream(fname));
+			ObjectInputStream nextStream = new ObjectInputStream(new FileInputStream(runfnames.remove()));
 			inBatches[runIndex] = ((Batch) nextStream.readObject()); // should be fine
 			runFiles.add(nextStream);
 			
-			int numBatches = (lastRun && (runIndex == (numToRead-1)))? finalNumBatches : runSize;
-			batchesPerRun[runIndex] = numBatches-1; // explain -1
-			numBatchesToMerge += numBatches;
+			//int numBatches = (lastRun && (runIndex == (numToRead-1)))? finalNumBatches : runSize;
+			//batchesPerRun[runIndex] = numBatches-1; // explain -1
+			//numBatchesToMerge += numBatches;
 		}
-   
-    	runfnames.add(fname); // explain
-    	
-    	return numBatchesToMerge;
     }
     
-    private int mergeRuns(ObjectOutputStream out, Batch[] inBatches, int runSize, int batchsize, int attrIndex, boolean lastRun) 
+    private void mergeRuns(ObjectOutputStream out, Batch[] inBatches, int runSize, int batchsize, int attrIndex) 
     		throws IOException, ClassNotFoundException {
     	
     	Vector<ObjectInputStream> runFiles = new Vector<>(numToRead);
-		int[] batchesPerRun = new int[numToRead];
-		int numBatchesToMerge = writeRunsToMemory(runFiles, batchesPerRun, inBatches, runSize, lastRun);
+		writeRunsToMemory(runFiles, inBatches);
 		outBatch = new Batch(batchsize);
 		
-    	for (int mergedIndex = 0; mergedIndex < numBatchesToMerge; mergedIndex++) {
-			for (int tupleIndex = 0; tupleIndex < batchsize; tupleIndex++) {
+    	for (int batchIndex = 0; batchIndex < (runSize*(numBuff-1)); batchIndex++) {
+			while(!outBatch.isFull()) {
 				int minIndex = minTupleIndex(inBatches,attrIndex);
 				if (minIndex == -1) {
 					break;
@@ -350,22 +342,25 @@ public final class SortMerge extends Join {
 				minBatch.removeHead();
 				
 				if(minBatch.isEmpty()) {
-					if (batchesPerRun[minIndex] > 0) {
+					try {
 						inBatches[minIndex] = (Batch) runFiles.get(minIndex).readObject();
-						batchesPerRun[minIndex] -= 1;
+					} catch (EOFException eof) {
+						// Nothing should happen here
 					}
 				}
 			}
 			
-			out.writeObject(outBatch);
-			outBatch = new Batch(batchsize);
+			if(!outBatch.isEmpty()) {
+				out.writeObject(outBatch);
+				outBatch = new Batch(batchsize);
+			} else {
+				break;
+			}
 		}
     	
     	for (ObjectInputStream nextStream: runFiles) {
     		nextStream.close();
     	}
-    	
-    	return numBatchesToMerge;
     }
     
     private void mergePhase(int numBatches, int batchsize, int attrIndex) throws IOException, ClassNotFoundException {
@@ -379,31 +374,28 @@ public final class SortMerge extends Join {
 			int leftToMerge = runfnames.size();
 			while (leftToMerge > 1) {
 				
-				numToRead = numBuff-1;
-				boolean lastRun = false;
-				if (leftToMerge <= (numBuff-1)) {
-					numToRead = leftToMerge;
-					lastRun = true;
-				}
+				numToRead = (leftToMerge <= (numBuff-1))? leftToMerge : (numBuff-1);
 				
 				ObjectOutputStream tmpMerged = new ObjectOutputStream(new FileOutputStream(tmpMergedName));
-				int numBatchesMerged = mergeRuns(tmpMerged, inBatches, runSize, batchsize, attrIndex, lastRun);
+				mergeRuns(tmpMerged, inBatches, runSize, batchsize, attrIndex);
 				tmpMerged.close();
 				
 				ObjectInputStream in = new ObjectInputStream(new FileInputStream(tmpMergedName));
-				String mergefname = runfnames.getLast(); // Merged-file name was appended
+				String mergefname = temporaryFileName();
+				runfnames.add(mergefname);
 				ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(mergefname));
-				for (int batchIndex = 0; batchIndex < numBatchesMerged; batchIndex++) {
-					out.writeObject(in.readObject());
+				for (int batchIndex = 0; batchIndex < (runSize*(numBuff-1)); batchIndex++) {
+					try {
+						Batch nextBatch = (Batch) in.readObject();
+						out.writeObject(nextBatch);
+					} catch (EOFException eof) {
+						break;
+					}
 				}
 				in.close();
 				out.close();
 				
-				if(lastRun) {
-					finalNumBatches += (numToRead-1)*runSize; // explain
-				}
 				leftToMerge -= numToRead;
-				
 			}
 			runSize = runSize*(numBuff-1);
 		} 
@@ -444,7 +436,7 @@ public final class SortMerge extends Join {
     }
     
     public Batch next() {
-        if ((batchcurs == (numToRead-1)) && (rcurs == batchSizes[numToRead-1])) { // not entirely correct, change later
+    	if ((batchcurs == (numToRead-1)) && (rcurs == batchSizes[numToRead-1])) { // not entirely correct, change later
             close();
             return null;
         }
@@ -524,6 +516,7 @@ public final class SortMerge extends Join {
             	}
 	        }
         } catch (IOException io) {
+        	io.printStackTrace();
             System.out.println("MergeSortJoin temporary file reading error"); 
             System.exit(1);
         } catch (ClassNotFoundException c) {
