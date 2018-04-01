@@ -311,7 +311,10 @@ public class RandomOptimizer {
             return findNodeAt(((Select) node).getBase(), joinNum);
         } else if (node.getOpType() == OpType.PROJECT) {
             return findNodeAt(((Project) node).getBase(), joinNum);
-        } else {
+        } else if (node.getOpType() == OpType.ORDERBY) {
+        	return findNodeAt(((OrderBy) node).getBase(), joinNum);
+        }
+        else {
             return null;
         }
     }
@@ -335,6 +338,11 @@ public class RandomOptimizer {
             Operator base = ((Project) node).getBase();
             modifySchema(base);
             Vector attrlist = ((Project) node).getProjAttr();
+            node.setSchema(base.getSchema().subSchema(attrlist));
+        } else if (node.getOpType() == OpType.ORDERBY) {
+        	Operator base = ((OrderBy) node).getBase();
+            modifySchema(base);
+            Vector attrlist = ((OrderBy) node).getOrdAttr();
             node.setSchema(base.getSchema().subSchema(attrlist));
         }
     }
@@ -374,6 +382,13 @@ public class RandomOptimizer {
         } else if (node.getOpType() == OpType.PROJECT) {
             Operator base = makeExecPlan(((Project) node).getBase());
             ((Project) node).setBase(base);
+            return node;
+        } else if (node.getOpType() == OpType.ORDERBY) {
+        	OrderBy ob = (OrderBy) node;
+        	Operator base = makeExecPlan(ob.getBase());
+        	ob.setBase(base);
+        	int numbuff = BufferManager.getBuffersPerJoin();
+        	ob.setNumBuff(numbuff);
             return node;
         } else {
             return node;

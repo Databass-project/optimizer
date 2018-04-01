@@ -101,7 +101,7 @@ public final class SortMerge extends Join {
 	        		numTuples += showFileContent(fname, numBuff, leftindex);
 	        	}
 	        	System.out.println("Total number of tuples: " + numTuples);**/
-	        	if (mergeSort(lfname, lnumPages, lbatchsize, leftindex)) {
+	        	if (mergeSort(lnumPages, lbatchsize, leftindex)) {
 	        		lfname = runfnames.removeFirst();
 	        		/**int numTuples = showFileContent(lfname, lnumPages, leftindex);
 	        		System.out.println("Left number of tuples: " + numTuples);**/
@@ -112,7 +112,7 @@ public final class SortMerge extends Join {
 			        		numTuples += showFileContent(fname, numBuff, rightindex);
 			        	}
 			        	System.out.println("Total number of tuples: " + numTuples);**/
-			            if (mergeSort(rfname, rnumPages, rbatchsize, rightindex)) {
+			            if (mergeSort(rnumPages, rbatchsize, rightindex)) {
 				            rfname = runfnames.removeFirst();
 				            /**numTuples = showFileContent(rfname, rnumPages, rightindex);
 			        		System.out.println("Right number of tuples: " + numTuples);**/
@@ -409,7 +409,7 @@ public final class SortMerge extends Join {
 		} 
     }
     
-    private boolean mergeSort(String filename, int numBatches, int batchsize, int attrIndex) {
+    private boolean mergeSort(int numBatches, int batchsize, int attrIndex) {
     	try {
     	    mergePhase(numBatches, batchsize, attrIndex);
     		return true;
