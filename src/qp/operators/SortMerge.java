@@ -36,7 +36,7 @@ public final class SortMerge extends Join {
     int batchcurs; // Cursor for right side buffers
     int numReadLeft; // Number of left memory pages read
     int numReadRight; // Number of right memory pages read
-    int numToRead; // Number of right pages to read
+    int numToRead; // Number of pages to read
     
     ObjectInputStream sortedLeft; 
     ObjectInputStream sortedRight; 
@@ -155,19 +155,6 @@ public final class SortMerge extends Join {
         rightindex = right.getSchema().indexOf(rightattr);
     }
     
-    
-    /** Modify: sort using join attributes
-    private int compareTuples(Tuple left, Tuple right) {  // sort using join attributes
-    	int numAttr = left._data.size(); // tuples have the same size, and same attributes
-		for (int index = 0; index < numAttr; index++) { 
-			int compareAtIndex = Tuple.compareTuples(left, right, index);
-			if (compareAtIndex != 0) {
-				return compareAtIndex;
-			}
-		}
-		return 0;
-	}**/
-    
     private void writeBlockToFile(ObjectOutputStream out, Batch nextBlock) throws IOException {
     	outBatch = new Batch(batchsize);
     	
@@ -211,14 +198,16 @@ public final class SortMerge extends Join {
 	            		nextBlock.clear();
 	                }
 	                
-	                for(Tuple nextTuple: nextBatch.getTuples()) {
+	                for(Tuple nextTuple: nextBatch.getTuples()) { // All pages of size batchsize
 	                	nextBlock.add(nextTuple);
 	                }
 	                lnumPages += 1;
 	        	}
 	        }
 	        
-	        nextSortedRun(nextBlock,leftindex); // condition?
+	        if (!nextBlock.isEmpty()) {
+	        	nextSortedRun(nextBlock,leftindex);
+	        }
 	        finalNumBatches = nextBlock.size();
     	} catch (IOException io) {
             System.out.println("SortMerge: temporary file reading error");
@@ -256,7 +245,9 @@ public final class SortMerge extends Join {
 	        	}
 	        }
 	        
-	        nextSortedRun(nextBlock,rightindex); // condition?
+	        if (!nextBlock.isEmpty()) {
+	        	nextSortedRun(nextBlock,rightindex);
+	        }
 	        finalNumBatches = nextBlock.size();
     	} catch (IOException io) {
             System.out.println("SortMerge: temporary file reading error");
@@ -268,6 +259,26 @@ public final class SortMerge extends Join {
         }
         
         return true;
+    }
+    
+    private int minTupleIndex(Batch[] inBatches, int attrIndex) {
+    	Tuple minTuple = null;
+    	int minTupleIndex = -1;
+    	
+    	for (int batchIndex = 0; batchIndex < numToRead; batchIndex++) { 
+    		Batch nextBatch = inBatches[batchIndex];
+    		
+    		if(!nextBatch.isEmpty()) {
+    			Tuple nextTuple = nextBatch.head();
+    			
+    			if((minTupleIndex == -1) || (Tuple.compareTuples(nextTuple, minTuple, attrIndex) < 0)) {
+    				minTuple = nextTuple;
+    				minTupleIndex = batchIndex;
+    			} 
+    		}
+    	}
+    	
+    	return minTupleIndex;
     }
     
     private int writeRunsToMemory(Vector<ObjectInputStream> runFiles, int[] batchesPerRun, Batch[] inBatches, int runSize, boolean lastRun) 
@@ -290,26 +301,6 @@ public final class SortMerge extends Join {
     	runfnames.add(fname); // explain
     	
     	return numBatchesToMerge;
-    }
-    
-    private int minTupleIndex(Batch[] inBatches, int attrIndex) {
-    	Tuple minTuple = null;
-    	int minTupleIndex = -1;
-    	
-    	for (int batchIndex = 0; batchIndex < numToRead; batchIndex++) { 
-    		Batch nextBatch = inBatches[batchIndex];
-    		
-    		if(!nextBatch.isEmpty()) {
-    			Tuple nextTuple = nextBatch.head();
-    			
-    			if((minTupleIndex == -1) || (Tuple.compareTuples(nextTuple, minTuple, attrIndex) < 0)) {
-    				minTuple = nextTuple;
-    				minTupleIndex = batchIndex;
-    			} 
-    		}
-    	}
-    	
-    	return minTupleIndex;
     }
     
     private int mergeRuns(ObjectOutputStream out, Batch[] inBatches, int runSize, int attrIndex, boolean lastRun) 
@@ -425,7 +416,6 @@ public final class SortMerge extends Join {
     	}
     }
     
-    
     public Batch next() {
         if (eosl || eosr) { // not entirely correct, change later
             close();
@@ -510,7 +500,6 @@ public final class SortMerge extends Join {
         
         return outBatch; // bad programming, will never reach
     }
-    
     
     // Delete temporary files
     public boolean close() {
