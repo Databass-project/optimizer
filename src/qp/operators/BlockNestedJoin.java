@@ -195,7 +195,9 @@ public class BlockNestedJoin extends Join {
         }
         if (nextBatches.size() == 0) // no batches were added
             return null;
-        Batch nextBlock = new Batch(batchsize*nextBatches.size());
+        
+        int rbatchsize = Batch.getPageSize() / right.schema.getTupleSize(); // explain
+        Batch nextBlock = new Batch(rbatchsize*nextBatches.size());
         for(Batch b: nextBatches) {
             for (int j = 0; j < b.size(); j++) {
                 nextBlock.add(b.elementAt(j));
