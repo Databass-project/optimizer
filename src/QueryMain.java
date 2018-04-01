@@ -1,6 +1,7 @@
 /* This is main driver program of the query processor */
 
 import java.io.*;
+import java.sql.Time;
 
 import qp.utils.*;
 import qp.operators.*;
@@ -182,7 +183,9 @@ public class QueryMain {
             if (data instanceof Integer) {
                 out.print(((Integer) data).intValue() + "\t");
             } else if (data instanceof Float) {
-                out.print(((Float) data).floatValue() + "\t");
+                out.print(((Float) data).floatValue() + "\t");}
+               else if (data instanceof Long) {
+                    out.print(new Time((long) data).toString() + "\t");
             } else {
                 out.print(((String) data) + "\t");
             }
