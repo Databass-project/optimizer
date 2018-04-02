@@ -42,12 +42,12 @@ public class DPoptimizer {
         computeSingleRelationPlan();
         if (numJoins > 0)
             computeJoinRelationPlan();
-
     }
 
     public Operator getBestPlan() {
         // case of no joins to perform
         if (numJoins == 0) {
+            util.createProjectOp();
             return util.getRoot();
         }
 
