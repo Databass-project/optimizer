@@ -1,3 +1,0 @@
-SELECT *
-FROM schedule,aircraft
-WHERE schedule.aid=schedule.aid

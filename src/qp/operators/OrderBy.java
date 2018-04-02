@@ -46,10 +46,9 @@ public class OrderBy extends Operator{
 
 
     public OrderBy(Operator base, Vector as, int type){
-	super(type);
-	this.base=base;
-	this.attrSet=as;
-
+		super(type);
+		this.base=base;
+		this.attrSet=as;
     }
 
     /* number of buffers available to this OrderBy operator */
@@ -63,15 +62,15 @@ public class OrderBy extends Operator{
     }
     
     public void setBase(Operator base){
-	this.base = base;
+    	this.base = base;
     }
 
     public Operator getBase(){
-	return base;
+    	return base;
     }
 
     public Vector getOrdAttr(){
-	return attrSet;
+    	return attrSet;
     }
 
     /** Opens the connection to the base operator
@@ -105,7 +104,7 @@ public class OrderBy extends Operator{
 	        		numTuples += showFileContent(fname, numBuff, leftindex);
 	        	}
 	        	System.out.println("Total number of tuples: " + numTuples);**/
-	        	if (mergeSort(fname, numPages, batchsize)) {
+	        	if (mergeSort()) {
 	        		fname = runfnames.removeFirst();
 	        		/**int numTuples = showFileContent(lfname, lnumPages, leftindex);
 	        		System.out.println("Left number of tuples: " + numTuples);**/
@@ -356,9 +355,9 @@ public class OrderBy extends Operator{
 		} 
     }
     
-    private boolean mergeSort(String filename, int numBatches, int batchsize) {
+    private boolean mergeSort() {
     	try {
-    	    mergePhase(numBatches, batchsize);
+    	    mergePhase(numPages, batchsize);
     		return true;
     	} catch (IOException io) {
     		io.printStackTrace();
@@ -375,7 +374,7 @@ public class OrderBy extends Operator{
     	try {
 			in.close();
 			for (int fnum = 1; fnum <= filenum; fnum++) { 
-	    		String filename = "MSJtemp-" + String.valueOf(fnum);
+	    		String filename = "OBtemp-" + String.valueOf(fnum);
 	    		File f = new File(filename);
 	    	    f.delete();
 	    	}
