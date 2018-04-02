@@ -1,0 +1,5 @@
+SELECT CUSTOMER.cid, CUSTOMER.firstname, CUSTOMER.sex, CART.cartid, CART.status
+FROM CUSTOMER,CART
+WHERE CUSTOMER.cid=CART.cid
+
+
