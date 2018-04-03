@@ -1,0 +1,3 @@
+SELECT *
+FROM flights,schedule
+WHERE flights.flno=schedule.flno

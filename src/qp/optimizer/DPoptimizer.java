@@ -8,6 +8,10 @@ import qp.utils.Schema;
 
 import java.util.*;
 
+/**
+ * Dynamic Programming optimizer that only considers left-deep trees without cartesian products.
+ * Note that if we consider CP then the #states = 2^k - 1.
+ */
 public class DPoptimizer {
     private SQLQuery query;
     private int numJoins;
@@ -38,12 +42,12 @@ public class DPoptimizer {
         computeSingleRelationPlan();
         if (numJoins > 0)
             computeJoinRelationPlan();
-
     }
 
     public Operator getBestPlan() {
         // case of no joins to perform
         if (numJoins == 0) {
+            util.createProjectOp();
             return util.getRoot();
         }
 

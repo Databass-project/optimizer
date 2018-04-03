@@ -1,0 +1,3 @@
+SELECT *
+FROM flights,schedule,aircrafts
+WHERE flights.flno=schedule.flno,schedule.aid=schedule.aid

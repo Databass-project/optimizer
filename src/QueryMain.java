@@ -118,7 +118,7 @@ public class QueryMain {
         return bm;
     }
 
-    private static SQLQuery getSqlQuery(String queryfile) {
+    public static SQLQuery getSqlQuery(String queryfile) {
         FileInputStream source = ReadQueryFile(queryfile);
 
         Scaner sc = new Scaner(source);
