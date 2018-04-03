@@ -339,11 +339,6 @@ public class RandomOptimizer {
             modifySchema(base);
             Vector attrlist = ((Project) node).getProjAttr();
             node.setSchema(base.getSchema().subSchema(attrlist));
-        } else if (node.getOpType() == OpType.ORDERBY) {
-        	Operator base = ((OrderBy) node).getBase();
-            modifySchema(base);
-            Vector attrlist = ((OrderBy) node).getOrdAttr();
-            node.setSchema(base.getSchema().subSchema(attrlist));
         }
     }
 

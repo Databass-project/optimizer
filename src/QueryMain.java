@@ -27,7 +27,7 @@ public class QueryMain {
         String resultfile = args[1];
         SQLQuery sqlquery = getSqlQuery(queryfile);
 
-        int numJoinOrOrderBy = sqlquery.getNumJoin() + sqlquery.getNumOrderBy();
+        int numJoinOrOrderBy = sqlquery.getNumJoin() + ((sqlquery.getNumOrderBy() > 0) ? 1 : 0);
         BufferManager bm = setNumBuffers(in, numJoinOrOrderBy);
         boolean runRandomized = true;
         Operator root;
@@ -37,6 +37,7 @@ public class QueryMain {
 
             RandomOptimizer ro = new RandomOptimizer(sqlquery);
             Operator logicalroot = ro.getOptimizedPlan();
+
             if (logicalroot == null) {
                 System.out.println("root is null");
                 System.exit(1);
