@@ -389,7 +389,7 @@ public class RandomOptimizer {
         	ob.setBase(base);
         	int numbuff = BufferManager.getBuffersPerJoin();
         	ob.setNumBuff(numbuff);
-            return node;
+            return ob;
         } else {
             return node;
         }
