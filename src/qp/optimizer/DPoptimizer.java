@@ -70,7 +70,8 @@ public class DPoptimizer {
 
                     HashSet<Condition> newTree = new HashSet<>(tree);
                     newTree.add(c);
-                    int cost = new PlanCost().getCost(newJoin);
+//                    int cost = new PlanCost().getCost(newJoin);
+                    int cost = tryEachJoinMethod(newJoin);
                     if (!newCostMap.containsKey(newTree) || newCostMap.get(newTree) > cost) {
                         newCostMap.put(newTree, cost);
                         newOperatorMap.put(newTree, newJoin);
@@ -157,6 +158,9 @@ public class DPoptimizer {
         util.createSelectOp();
     }
 
+    /**
+     * This method creates two-table joins later to be used as the starting point for the Dynamic Programming in getBestPlan.
+     */
     private void computeJoinRelationPlan() {
         for (Condition cOriginal: joinConditions) {
             Condition c = (Condition) cOriginal.clone();
@@ -167,8 +171,8 @@ public class DPoptimizer {
             join.setSchema(jointSchema);
             Debug.printWithLines(false, "");
             Debug.printBold("Calculating the cost of join without flipping");
-            PlanCost pc = new PlanCost();
-            int cost = pc.getCost(join);
+//            int cost = new PlanCost().getCost(join);
+            int cost = tryEachJoinMethod(join);
 
             /// now flip the RHS and LHS of the join
             c.flip();
@@ -176,7 +180,8 @@ public class DPoptimizer {
             Schema jointSchemaFlipped = rightOp.getSchema().joinWith(leftOp.getSchema());
             flippedJoin.setSchema(jointSchemaFlipped);
             Debug.printBold("Calculating the cost of join after flipping");
-            int costFlippedJoin =  new PlanCost().getCost(flippedJoin);
+//            int costFlippedJoin =  new PlanCost().getCost(flippedJoin);
+            int costFlippedJoin = tryEachJoinMethod(flippedJoin);
             HashSet<Condition> hs = new HashSet<>();
 
             System.out.println("\ncomputeJoinRelationPlan: CostMap contains ");
@@ -199,6 +204,29 @@ public class DPoptimizer {
             tableNames.add(((Attribute)c.getRhs()).getTabName());
             tableMap.put(hs, tableNames);
         }
+    }
+
+    /**
+     * @param root root of the tree to calculate the cost
+     * @return the cost of the tree with best join method for the top-most join
+     */
+    private int tryEachJoinMethod(Operator root) {
+        if (root.getOpType() != OpType.JOIN) {
+            System.exit(1);
+        }
+        int minCost = Integer.MAX_VALUE;
+        int minJoinType = 0;
+        for (int type = 0; type < JoinType.numJoinTypes(); type++) {
+            ((Join) root).setJoinType(type);
+            int currentCost = new PlanCost().getCost(root);
+            if (minCost > currentCost) {
+                minCost = currentCost;
+                minJoinType = type;
+            }
+        }
+        ((Join) root).setJoinType(minJoinType);
+
+        return minCost;
     }
 
     public Operator createProjectOp(Operator root) { // currently, no push-down of selection and projection
