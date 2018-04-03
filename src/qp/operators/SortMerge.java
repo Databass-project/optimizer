@@ -17,6 +17,7 @@ import qp.utils.Batch;
 import qp.utils.Tuple;
 
 public final class SortMerge extends Join {
+	
 	int lbatchsize;
 	int rbatchsize;
 	int jbatchsize;  //Number of joined tuples per out batch
@@ -406,6 +407,7 @@ public final class SortMerge extends Join {
     		leftBatch = (Batch) sortedLeft.readObject();
     		numReadLeft += 1;
     	} catch (EOFException eof) {
+    		sortedLeft.close();
     		eosl = true;
     	}
     }
@@ -417,11 +419,12 @@ public final class SortMerge extends Join {
 	    		batchSizes[batchesRead] = rightBatches[batchesRead].size();
 	    	}
     	} catch (EOFException eof) {
+    		sortedRight.close();
     		eosr = true;
     	}
     }
     
-    public Batch next() {
+    public Batch next() { // properly close input stream
     	if (eosl || (eosr && (batchesRead == 0))) { // not entirely correct, change later
             close();
             return null;
@@ -503,10 +506,10 @@ public final class SortMerge extends Join {
 	        }
         } catch (IOException io) {
         	io.printStackTrace();
-            System.out.println("MergeSortJoin temporary file reading error"); 
+            System.out.println("SortMerge: file operation error"); 
             System.exit(1);
         } catch (ClassNotFoundException c) {
-            System.out.println("MergeSortJoin: Some error in deserialization ");
+            System.out.println("SortMerge: deserialization error");
             System.exit(1);
         }
         
