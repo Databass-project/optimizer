@@ -21,15 +21,14 @@ public class OrderBy extends Operator{
     
     private String fName;
     private ObjectInputStream in; // Sorted base file being scanned
-    private boolean eosb = false;
+    private boolean eosb;
     
     /* PUBLIC INTERFACE */
 
-    public OrderBy(Operator base, Vector as, int type){
+    public OrderBy(Operator base, Vector as, int type) {
 		super(type);
 		this.base = base;
 		this.attrSet = as;
-		eosb = true;
     }
 
     public void setNumBuff(int num) {

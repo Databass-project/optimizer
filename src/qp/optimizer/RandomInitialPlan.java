@@ -56,6 +56,7 @@ public class RandomInitialPlan {
             createJoinOp();
         }
         createProjectOp();
+        //createOrderByOp();
         return root;
     }
 
