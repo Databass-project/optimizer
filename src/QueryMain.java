@@ -27,8 +27,8 @@ public class QueryMain {
         String resultfile = args[1];
         SQLQuery sqlquery = getSqlQuery(queryfile);
 
-        int numJoin = sqlquery.getNumJoin();
-        BufferManager bm = setNumBuffers(in, numJoin);
+        int numJoinOrOrderBy = sqlquery.getNumJoin() + sqlquery.getNumOrderBy();
+        BufferManager bm = setNumBuffers(in, numJoinOrOrderBy);
         boolean runRandomized = true;
         Operator root;
         if (runRandomized) {

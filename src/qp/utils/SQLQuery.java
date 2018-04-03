@@ -101,5 +101,11 @@ public class SQLQuery {
 
         return joinList.size();
     }
+    
+    public int getNumOrderBy(){
+    	if (orderbyList == null)
+    		return 0;
+    	return orderbyList.size();
+    }
 
 }
