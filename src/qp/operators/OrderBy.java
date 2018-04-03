@@ -92,7 +92,6 @@ public class OrderBy extends Operator{
 	    }	
 	    	
 		outBatch = new Batch(batchSize);
-	
 		try {
 			outBatch = (Batch) in.readObject();
 		} catch (EOFException e) {
