@@ -107,7 +107,7 @@ public class QueryMain {
         }
 
         /* Check the number of buffers available is enough */
-        int numBuff = BufferManager.getBuffersPerJoin();
+        int numBuff = BufferManager.getBuffersPerJoinOrOrderBy();
         if (numJoin > 0 && numBuff < 3) {
             System.out.println("Minimum 3 buffers are required per join operator ");
             System.exit(1);

@@ -122,7 +122,7 @@ public class PlanCost {
         int joinType = node.getJoinType();
         /* number of buffers allotted to this join */
 
-        int numbuff = BufferManager.getBuffersPerJoin();
+        int numbuff = BufferManager.getBuffersPerJoinOrOrderBy();
         int joincost;
 //        Debug.printPurple("#tuples per page on left = " + numTuplesPerPageForLeft + " #tuples per page on right = " + numTuplesPerPageForRight + "\n");
 //        Debug.printPurple("left tuples = " + lefttuples + " right tuples = " +  righttuples + "\n");
