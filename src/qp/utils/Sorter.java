@@ -64,7 +64,7 @@ public final class Sorter {
 		return sortedName;
 	}
 	
-	public int showFileContent(String fname, int numPages, int attrIndex) { // helper method
+	public void showFileContent(String fname, int numPages, int attrIndex) { // helper method
     	int tupleNumber = 0;
     	
     	try {
@@ -90,17 +90,11 @@ public final class Sorter {
 			}
 			in.close();
 			
-			System.out.println("=================================================");
-    	} catch (EOFException eof){
-			return tupleNumber;
-		} catch (IOException io) {
-			io.printStackTrace();
-			return 0;
-		} catch (ClassNotFoundException cnf) {
-			cnf.printStackTrace();
-			return 0;
-		}
-		return tupleNumber;
+    	} catch (Exception e) {
+    		
+    	}
+		System.out.println("Number of tuples: " + tupleNumber);
+		System.out.println("=================================================");
     }
 	
 	/* PRIVATE METHODS */

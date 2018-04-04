@@ -123,9 +123,9 @@ public final class SortMerge extends Join {
         outBatch = new Batch(jbatchsize); 
 
         try {
-        	if (rightBlock.size() == 0) {
+        	if (rightBlock.isEmpty()) {
                 updateLeftBatch();
-        		updateRightBatches();
+        		readRightBatches();
         	}
         	
         	Tuple lefttuple;
@@ -136,8 +136,9 @@ public final class SortMerge extends Join {
 	        	do {
 	        		lefttuple = leftBatch.elementAt(lcurs);
 	        		
-	        		if ((lastTuple != null) && lefttuple.checkJoin(lastTuple, leftindex, leftindex)) {
+	        		if ((lastTuple != null) && lefttuple.checkJoin(lastTuple, leftindex, leftindex)) { 
 	        			seekToTuple();
+	        			lastTuple = null;
 	        		} 
 	        		righttuple = rightBlock.elementAt(rcurs);
 	        		
@@ -153,8 +154,7 @@ public final class SortMerge extends Join {
                     				return outBatch;
                     			}
                     		} else {
-                    			updateRightBatches();
-                    			if (rightBlock.isEmpty()) {
+                    			if (readRightBatches()) {
                     				if (outBatch.isEmpty()) {
                     					return null;
                     				} else {
@@ -164,27 +164,20 @@ public final class SortMerge extends Join {
                     		}
                     	}
                     } else if (compareTuples < 0) {
+                    	equalitySequence = false; // explain
+                		lastTuple = lefttuple; // next tuple checks for equality
+                    	
                     	if (lcurs < (leftBatch.size()-1)) {
                     		lcurs += 1;
                     	} else { // Load into memory
+                    		updateLeftBatch();
                     		if (eosl) {
                     			if (outBatch.isEmpty()) {
                     				return null;
                     			} else {
                     				return outBatch;
                     			}
-                    		} else {
-                    			updateLeftBatch();
-                    			if (leftBatch.isEmpty()) {
-                    				if (outBatch.isEmpty()) {
-                    					return null;
-                    				} else {
-                    					return outBatch;
-                    				}
-                    			}
-                    		}
-                    		equalitySequence = false; // explain
-                    		lastTuple = lefttuple; // next tuple checks for equality
+                    		} 
                     	}
                     }
 	        	} while(compareTuples != 0);
@@ -195,19 +188,24 @@ public final class SortMerge extends Join {
 	        		equalityBlockIndex = numBlocksRead;
 	        		equalityTupleIndex = rcurs;
 	        		equalitySequence = true;
-	        	} // set equalitySequence to false
+	        	} 
 	        	
-	        	if (rcurs < (rightBlock.size())) {
+	        	if (rcurs < (rightBlock.size()-1)) {
             		rcurs += 1;
-            	} else { // Load into memory
-            		if (eosr) {
-            			seekToTuple();
-            			return outBatch;
-            		} else {
-            			updateRightBatches();
-            			if (rightBlock.isEmpty()) {
-            				seekToTuple();
-            			}
+            	} else if (!eosr){ // Load into memory
+            		if(readRightBatches()) { // update lcurs
+            			if (lcurs < (leftBatch.size()-1)) {
+                    		lcurs += 1;
+                    	} else { // Load into memory
+                    		updateLeftBatch();
+                    		if (eosl) {
+                    			if (outBatch.isEmpty()) {
+                    				return null;
+                    			} else {
+                    				return outBatch;
+                    			}
+                    		} 
+                    	}
             		}
             	}
 	        }
@@ -245,18 +243,18 @@ public final class SortMerge extends Join {
     
     private void updateLeftBatch() throws IOException, ClassNotFoundException {
     	try {
-    		leftBatch = (Batch) sortedLeft.readObject();
     		lcurs = 0;
+    		leftBatch = (Batch) sortedLeft.readObject();
     	} catch (EOFException eof) {
     		sortedLeft.close();
     		eosl = true;
     	}
     }
     
-    private void updateRightBatches() throws IOException, ClassNotFoundException {
+    private boolean readRightBatches() throws IOException, ClassNotFoundException {
+    	rightBlock = new Batch((numBuff-2)*rbatchsize);
+    	rcurs = 0;
     	try {
-    		rightBlock = new Batch((numBuff-2)*rbatchsize);
-    		rcurs = 0;
     		numBlocksRead += 1;
 	    	while(!rightBlock.isFull()) {
 	    		Batch nextBatch = (Batch) sortedRight.readObject();
@@ -268,6 +266,7 @@ public final class SortMerge extends Join {
     		sortedRight.close();
     		eosr = true;
     	}
+    	return rightBlock.isEmpty();
     }
     
     private void seekToTuple() throws IOException, ClassNotFoundException {
