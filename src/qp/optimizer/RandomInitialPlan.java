@@ -22,6 +22,7 @@ public class RandomInitialPlan {
     Vector joinlist;
     Vector orderbylist;
     int numJoin;    // Number of joins in this query
+    int numOrderBy; // Number of orderBy attributes in this query
 
     Hashtable tab_op_hash; //table name to the Operator
     Operator root; // root of the query plan tree
@@ -35,6 +36,7 @@ public class RandomInitialPlan {
         joinlist = sqlquery.getJoinList();
         orderbylist = sqlquery.getOrderByList();
         numJoin = joinlist.size();
+        numOrderBy = sqlquery.getNumOrderBy();
     }
 
     /**
@@ -56,7 +58,10 @@ public class RandomInitialPlan {
             createJoinOp();
         }
         createProjectOp();
-        createOrderByOp();
+        if (numOrderBy != 0){
+        	createOrderByOp();
+        }
+        
         return root;
     }
 
