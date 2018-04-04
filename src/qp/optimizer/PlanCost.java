@@ -135,7 +135,8 @@ public class PlanCost {
                 joincost = leftpages + (int) (Math.ceil((double) leftpages / (numbuff - 2))) * rightpages;
                 break;
             case JoinType.SORTMERGE:
-                joincost =  3 * (leftpages + rightpages);
+                joincost = 0;
+//                joincost =  3 * (leftpages + rightpages);
                 break;
             case JoinType.HASHJOIN:
                 joincost = 0;

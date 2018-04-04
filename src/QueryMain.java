@@ -29,7 +29,7 @@ public class QueryMain {
 
         int numJoin = sqlquery.getNumJoin();
         BufferManager bm = setNumBuffers(in, numJoin);
-        boolean runRandomized = false;
+        boolean runRandomized = true;
         Operator root;
         if (runRandomized) {
             RandomOptimizer ro = new RandomOptimizer(sqlquery);

@@ -22,8 +22,7 @@ public class Experiment {
     @Rule
     public TemporaryFolder saveFolder = new TemporaryFolder();
     private String folderRoot;
-//    private String[] queryFiles = {"q1", "q2", "q3", "q4" };
-    private String[] queryFiles = { "query1_1", "query1_2", "query1_3" };
+    private String[] queryFiles = { "query1_1", "query1_2", "query1_3", "query2_1" };
     private ArrayList<SQLQuery> sqlQueries = new ArrayList<>();
     private PrintWriter out;
     private int numAtts;
@@ -54,11 +53,11 @@ public class Experiment {
 
             // do block nested first
             JoinType.setNumJoinTypes(2);
-            System.out.println("It took " + computeQueryPerformance(query) + " for Experiment 1-" + (i+1) + " under block nested join");
+            System.out.printf("It took %.4f for Experiment 1-%d with BNJ\n", computeQueryPerformance(query), (i+1));
 
             // do sort merge next
             JoinType.setNumJoinTypes(3);
-            System.out.println("It took " + computeQueryPerformance(query) + " for Experiment 1-" + (i+1) + " under sort merge join");
+            System.out.printf("It took %.4f for Experiment 1-%d with SMJ\n", computeQueryPerformance(query), (i+1));
         }
 
         assertTrue("Experiment 1 is complete", true);
@@ -70,16 +69,16 @@ public class Experiment {
         SQLQuery query = sqlQueries.get(sqlQueries.size()-1); // set experiment2 query to be the last one
         BufferManager bf = new BufferManager(1000, query.getNumJoin());
 
-        JoinType.setNumJoinTypes(1);
-        System.out.println("It took " + computeQueryPerformance(query) + " for Experiment 1 with PNJ");
-
         // do block nested first
         JoinType.setNumJoinTypes(2);
-        System.out.println("It took " + computeQueryPerformance(query) + " for Experiment 2 with BNJ");
+        System.out.printf("It took %.4f for Experiment 2 with BNJ\n", computeQueryPerformance(query));
+
+        JoinType.setNumJoinTypes(1);
+        System.out.printf("It took %.4f for Experiment 2 with PNJ\n", computeQueryPerformance(query));
 
         // do sort merge next
         JoinType.setNumJoinTypes(3);
-        System.out.println("It took " + computeQueryPerformance(query) + " for Experiment 2 with MSJ");
+        System.out.printf("It took %.4f for Experiment 2 with SMJ\n", computeQueryPerformance(query));
 
         assertTrue("Experiment 2 is complete", true);
     }
@@ -101,7 +100,7 @@ public class Experiment {
         writeResultToFile(root);
         out.close();
         long endtime = System.currentTimeMillis();
-        return (endtime - starttime) / 1000;
+        return (endtime - starttime) / (double) 1000;
     }
 
     private Operator runDPOptimizer(SQLQuery query) {

@@ -1,4 +1,0 @@
-SELECT employees.ename
-FROM employees,certified,schedule
-WHERE employees.eid=certified.eid,certified.aid=schedule.aid,schedule.flno="x"
-
