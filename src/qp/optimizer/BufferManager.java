@@ -16,4 +16,8 @@ public class BufferManager {
     public static int getBuffersPerJoin() {
         return buffPerJoinOrOrderBy;
     }
+    
+    public static int getBuffers(){
+    	return numBuffer;
+    }
 }

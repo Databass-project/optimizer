@@ -381,7 +381,7 @@ public class RandomOptimizer {
         	OrderBy ob = (OrderBy) node;
         	Operator base = makeExecPlan(ob.getBase());
         	ob.setBase(base);
-        	int numbuff = BufferManager.getBuffersPerJoin();
+        	int numbuff = BufferManager.getBuffers();
         	ob.setNumBuff(numbuff);
             return ob;
         } else {
