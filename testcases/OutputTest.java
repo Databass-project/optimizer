@@ -49,18 +49,18 @@ public class OutputTest {
         folderRoot = saveFolder.getRoot().getPath();
         outputFileToTest = folderRoot + "out-test";
     }
-
-    @Test
-    public void testPageNestedJoin() throws Exception {
-        JoinType.setNumJoinTypes(1);
-        compareJoinResults();
-    }
-
-    @Test
-    public void testBlockNestedJoin() throws Exception {
-        JoinType.setNumJoinTypes(2);
-        compareJoinResults();
-    }
+//
+//    @Test
+//    public void testPageNestedJoin() throws Exception {
+//        JoinType.setNumJoinTypes(1);
+//        compareJoinResults();
+//    }
+//
+//    @Test
+//    public void testBlockNestedJoin() throws Exception {
+//        JoinType.setNumJoinTypes(2);
+//        compareJoinResults();
+//    }
 
     @Test
     public void testSortMergeJoin() throws Exception {
@@ -108,7 +108,7 @@ public class OutputTest {
 
     private Operator runDPOptimizer(SQLQuery query) {
         DPoptimizer dp = new DPoptimizer(query);
-        return RandomOptimizer.makeExecPlan(dp.getBestPlan());
+        return DPoptimizer.makeExecPlan(dp.getBestPlan());
     }
 
     private Operator runRandomOptimizer(SQLQuery query) {

@@ -295,4 +295,52 @@ public class DPoptimizer {
         return "";
     }
 
+    /** After finding a choice of method for each operator, prepare an execution plan by replacing the methods with corresponding join operator implementation
+     */
+    public static Operator makeExecPlan(Operator node) {
+
+        if (node.getOpType() == OpType.JOIN) {
+            Operator left = makeExecPlan(((Join) node).getLeft());
+            Operator right = makeExecPlan(((Join) node).getRight());
+            int joinType = ((Join) node).getJoinType();
+            int numbuff = BufferManager.getBuffersPerJoinOrOrderBy();
+            Join joinOperator;
+            switch (joinType) {
+                case JoinType.NESTEDJOIN:
+                    joinOperator = new NestedJoin((Join) node);
+                    break;
+                case JoinType.HASHJOIN:
+                case JoinType.SORTMERGE:
+                    joinOperator = new SortMerge((Join) node);
+                    break;
+                case JoinType.BLOCKNESTED:
+                    joinOperator = new BlockNestedJoin((Join) node);
+                    break;
+                default:
+                    return node;
+            }
+            joinOperator.setLeft(left);
+            joinOperator.setRight(right);
+            joinOperator.setNumBuff(numbuff);
+            return joinOperator;
+        } else if (node.getOpType() == OpType.SELECT) {
+            Operator base = makeExecPlan(((Select) node).getBase());
+            ((Select) node).setBase(base);
+            return node;
+        } else if (node.getOpType() == OpType.PROJECT) {
+            Operator base = makeExecPlan(((Project) node).getBase());
+            ((Project) node).setBase(base);
+            return node;
+        } else if (node.getOpType() == OpType.ORDERBY) {
+            OrderBy ob = (OrderBy) node;
+            Operator base = makeExecPlan(ob.getBase());
+            ob.setBase(base);
+            int numbuff = BufferManager.getBuffersPerJoinOrOrderBy();
+            ob.setNumBuff(numbuff);
+            return ob;
+        } else {
+            return node;
+        }
+    }
+
 }
