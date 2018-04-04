@@ -18,7 +18,7 @@ public class OperatorUtils {
     private Vector<String> fromlist;
     private Vector<Condition> selectionlist;
     private Vector<Condition> joinlist;
-    private Vector groupbylist;
+    private Vector<Attribute> orderbyList;
     private int numJoin;    // Number of joins in this query
 
     private Hashtable<String, Operator> tableNameToOperator = new Hashtable<>();
@@ -31,7 +31,7 @@ public class OperatorUtils {
         fromlist = (Vector<String>) sqlquery.getFromList();
         selectionlist = (Vector<Condition>) sqlquery.getSelectionList();
         joinlist = (Vector<Condition>) sqlquery.getJoinList();
-        groupbylist = sqlquery.getOrderByList();
+        orderbyList = sqlquery.getOrderByList();
         numJoin = joinlist.size();
     }
 
@@ -139,8 +139,22 @@ public class OperatorUtils {
         }
     }
 
+    /**
+     * Create OrderBy Operator for the attributes mentioned in from list
+     **/
+    public void createOrderByOp() {
+        Operator base = root;
+        /* The last selection is the root of the plan tree constructed thus far */
+        if (orderbyList.size() != 0){
+            root = new OrderBy(base, orderbyList, OpType.ORDERBY);
+            root.setSchema(base.getSchema());
+        }
+    }
+
     public Vector<Attribute> getProjectlist() {
         return this.projectlist;
     }
+
+    public Vector<Attribute> getOrderbyList() { return this.orderbyList; }
 
 }

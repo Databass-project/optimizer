@@ -4,8 +4,6 @@
  */
 package qp.operators;
 
-import qp.utils.*;
-
 public class JoinType {
 
     public static final int NESTEDJOIN = 0;
@@ -17,7 +15,6 @@ public class JoinType {
 
     public static int numJoinTypes() {
         return numJoinTypes;
-        // we need to change this depending on how many join algos to implement
     }
 
     public static void setNumJoinTypes (int num){
