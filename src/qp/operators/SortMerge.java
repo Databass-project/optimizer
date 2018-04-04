@@ -135,8 +135,9 @@ public final class SortMerge extends Join {
 	        	do {
 	        		lefttuple = leftBatch.elementAt(lcurs);
 	        		
-	        		if ((lastTuple != null) && lefttuple.checkJoin(lastTuple, leftindex, leftindex)) {
+	        		if ((lastTuple != null) && lefttuple.checkJoin(lastTuple, leftindex, leftindex)) { // might go back not necessary
 	        			seekToTuple();
+	        			lastTuple = null;
 	        		} 
 	        		righttuple = rightBlock.elementAt(rcurs);
 	        		
@@ -144,11 +145,11 @@ public final class SortMerge extends Join {
                     if (compareTuples > 0) {
                     	if (updatercurs()) {
                     		if (outBatch.isEmpty()) {
-                   			 return null;
-                   		 } else {
-                   			 endOfJoin = true;
-                   			 return outBatch;
-                   		 }
+                   			 	return null;
+	                   		 } else {
+	                   			 endOfJoin = true; // incorrect
+	                   			 return outBatch;
+	                   		 }
                     	}
                     } else if (compareTuples < 0) {
                     	 if (updatelcurs(lefttuple)) {
@@ -175,12 +176,8 @@ public final class SortMerge extends Join {
             	} else {
             		if (eosr || updatercurs()) {
             			if (updatelcurs(lefttuple)) {
-		        			if (outBatch.isEmpty()) {
-		               			 return null;
-		               		} else {
-		               			 endOfJoin = true;
-		               			 return outBatch;
-		               		}
+		        			endOfJoin = true;
+		        			return outBatch;
             			}
             		}
             	} 
@@ -269,6 +266,7 @@ public final class SortMerge extends Join {
     
     private void seekToTuple() throws IOException, ClassNotFoundException {
     	if (numBlocksRead != equalityBlockIndex) {
+    		eosr = false;
 			sortedRight.close();
 			sortedRight = new ObjectInputStream(new FileInputStream(rfname));
 			numBlocksRead = 0;
