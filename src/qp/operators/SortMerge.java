@@ -33,7 +33,7 @@ public final class SortMerge extends Join {
     private boolean equalitySequence;		// Whether there is a sequence of identical tuples on the left
     private int equalityBlockIndex;			// Page index of first identical tuple
     private int equalityTupleIndex;			// Tuple Index of first identical tuple
-    private Tuple lastTuple;				// Last tuple from left file
+    private Tuple lasttuple;				// Last tuple from left file
 
     private ObjectInputStream sortedLeft;
     private ObjectInputStream sortedRight;
@@ -79,7 +79,7 @@ public final class SortMerge extends Join {
         equalitySequence = false;
         equalityBlockIndex = -1;
         equalityTupleIndex = -1;
-        lastTuple = null;
+        lasttuple = null;
 
         /* Prepare to process the streams  */
         eosl = false;
@@ -113,7 +113,7 @@ public final class SortMerge extends Join {
 		}
     }
 
-    public Batch next() { // properly close input stream
+    public Batch next() {
     	if (endOfJoin) {
             close();
             return null;
@@ -122,6 +122,7 @@ public final class SortMerge extends Join {
         outBatch = new Batch(jbatchsize);
 
         try {
+        	
         	if (leftBatch.isEmpty()) {
                 nextLeftBatch();
         		nextRightBlock();
@@ -129,35 +130,26 @@ public final class SortMerge extends Join {
         	Tuple lefttuple;
         	Tuple righttuple;
         	int compareTuples;
+        	
 	        while (!outBatch.isFull()) {
 	        	do {
 	        		lefttuple = leftBatch.elementAt(lcurs);
-
-	        		if ((lastTuple != null) && lefttuple.checkJoin(lastTuple, leftindex, leftindex)) { // might go back not necessary
-	        			seekToTuple();
-	        			lastTuple = null;
-	        		}
 	        		righttuple = rightBlock.elementAt(rcurs);
-
                     compareTuples = Tuple.compareTuples(lefttuple, righttuple, leftindex, rightindex);
-                    if (compareTuples > 0) {
-                    	if (updatercurs()) {
-                    		if (outBatch.isEmpty()) {
-                   			 	return null;
-	                   		 } else {
-	                   			 endOfJoin = true; // incorrect
-	                   			 return outBatch;
-	                   		 }
-                    	}
-                    } else if (compareTuples < 0) {
-                    	 if (updatelcurs(lefttuple)) {
-                    		 if (outBatch.isEmpty()) {
-                    			 return null;
-                    		 } else {
-                    			 endOfJoin = true;
-                    			 return outBatch;
-                    		 }
-                    	 }
+                    if ((compareTuples > 0) && (updatercurs())) {
+                    	if (outBatch.isEmpty()) {
+                    		return null;
+                   		} else {
+                   			endOfJoin = true; 
+                   			return outBatch;
+                   		}
+                    } else if ((compareTuples < 0) && updatelcurs(lefttuple)) {
+                    	if (outBatch.isEmpty()) {
+               			 	return null;
+               		 	} else {
+               		 		endOfJoin = true;
+               		 		return outBatch;
+               		 	}
                     }
 	        	} while(compareTuples != 0);
 
@@ -171,14 +163,10 @@ public final class SortMerge extends Join {
 
 	        	if (rcurs < (rightBlock.size()-1)) {
             		rcurs += 1;
-            	} else {
-            		if (eosr || updatercurs()) {
-            			if (updatelcurs(lefttuple)) {
-		        			endOfJoin = true;
-		        			return outBatch;
-            			}
-            		}
-            	}
+            	} else if ((eosr || updatercurs()) && updatelcurs(lefttuple)) {
+        			endOfJoin = true;
+        			return outBatch;
+            	} 
 	        }
         } catch (IOException io) {
             System.out.println("SortMerge: file operation error");
@@ -213,14 +201,21 @@ public final class SortMerge extends Join {
     }
 
     private boolean updatelcurs(Tuple lefttuple) throws IOException, ClassNotFoundException {
-    	equalitySequence = false;
-    	lastTuple = lefttuple;
+    	lasttuple = lefttuple;
     	if (lcurs < (leftBatch.size()-1)) {
     		lcurs += 1;
-    		return false;
-    	} else {
-    		return nextLeftBatch();
+    	} else if (nextLeftBatch()){
+    		return true;
     	}
+    	
+    	if ((lasttuple != null) && equalitySequence && (Tuple.compareTuples(lefttuple, lasttuple, leftindex) == 0)) {
+			seekToTuple();
+			lasttuple = null;
+		} 
+    	
+    	equalitySequence = false;
+    	
+    	return false;
     }
 
     private boolean nextLeftBatch() throws IOException, ClassNotFoundException {
