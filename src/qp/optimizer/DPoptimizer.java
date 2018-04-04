@@ -9,51 +9,62 @@ import qp.utils.Schema;
 import java.util.*;
 
 /**
- * Dynamic Programming optimizer that only considers left-deep trees without cartesian products.
+ * Dynamic Programming optimizer that only considers left-deep trees WITHOUT cartesian products.
  * Note that if we consider CP then the #states = 2^k - 1.
  */
 public class DPoptimizer {
     private SQLQuery query;
     private int numJoins;
-    private boolean DEBUG = true;
+    private boolean hasOrderBy;
 
     /**
      * maps plans to actual operator
      */
     private Vector<Condition> joinConditions;
+
+    /**
+     * contains the mapping from a set of conditions to the cost of the optimal tree which consists of the conditions in the set
+     */
     private HashMap<HashSet<Condition>, Integer> costMap = new HashMap<>();
+
+    /**
+     * contains the mapping from a set of conditions to the operator tree with minimum cost.
+     */
     private HashMap<HashSet<Condition>, Operator> operatorMap = new HashMap<>();
+
+    /**
+     * contains the mapping from a set of conditions to the tables it contains.
+     */
     private HashMap<HashSet<Condition>, HashSet<String>> tableMap = new HashMap<>();
 
     private OperatorUtils util;
 
-    /* we are going to avoid Cartesian products, since they can be harmful in most cases */
     public DPoptimizer(SQLQuery query) {
         this.query = query;
         joinConditions = (Vector<Condition>) query.getJoinList();
         numJoins = this.query.getNumJoin();
-        ; // need to use string, not operator as key: otherwise, how
-        // do you retrieve the value? This string should not have ordering
-
-        // the two tables you are joining must contain common attributes in the schema
-        // the first two tables at the leaf defines more or less what kind of tree you are going to get.
+        if (query.getOrderByList() != null && query.getOrderByList().size() > 0)
+            hasOrderBy = true;
 
         util = new OperatorUtils(this.query);
         computeSingleRelationPlan();
         if (numJoins > 0)
-            computeJoinRelationPlan();
+            computeBaseJoinRelationPlan();
     }
 
+    /**
+     * @return the logical root of the operator tree with minimum cost
+     */
     public Operator getBestPlan() {
-        // case of no joins to perform
         if (numJoins == 0) {
+            if (hasOrderBy) {
+                util.createOrderByOp();
+            }
             util.createProjectOp();
             return util.getRoot();
         }
 
         for (int cardinality = 2; cardinality <= numJoins; cardinality++) {
-            // for each small join tree, traverse through the join conditions
-            // if the join tree contains k tables, it can combine with at most k join conditions
             Debug.printBold("\n\ncardinality = " + cardinality + ": " + costMap.size() + " subtrees");
             HashMap<HashSet<Condition>, Integer> newCostMap = new HashMap<>();
             HashMap<HashSet<Condition>, Operator> newOperatorMap = new HashMap<>();
@@ -90,21 +101,25 @@ public class DPoptimizer {
                     }
                 }
             }
-            // swap the costMap and operatorMap such that they only contain elements whose
+            // swap the costMap, tableMap and operatorMap such that they only contain elements whose
             // size == cardinality
             costMap = newCostMap;
             operatorMap = newOperatorMap;
-            printCurrentOperators(operatorMap.values());
             tableMap = newTableMap;
-        }
+
+            printCurrentOperators(operatorMap.values());
+        } // end loop
 
         if (operatorMap.size() == 1) {
             Debug.printBold("\nThe operatorMap contains a unique operator tree");
             Operator bestTree = operatorMap.values().iterator().next();
+            if (hasOrderBy)
+                bestTree = createOrderByOp(bestTree);
             return createProjectOp(bestTree);
+        } else {
+            Debug.printBold("\nThe operatorMap contains more than one operator tree");
+            return null;
         }
-        Debug.printBold("\nThe operatorMap contains more than one operator tree");
-        return null;
     }
 
     private void printCurrentOperators(Collection<Operator> trees) {
@@ -116,6 +131,10 @@ public class DPoptimizer {
         }
     }
 
+    /**
+     * @param tree a set of join conditions that make up a subtree
+     * @return a list of join conditions which can be added to grow this subtree
+     */
     private ArrayList<Condition> getPossibleJoinConditions(HashSet<Condition> tree) {
         Debug.printWithLines(true, "");
         Debug.printHashSet(tree);
@@ -128,7 +147,7 @@ public class DPoptimizer {
             // check this join has not been applied to this tree yet
             if (!tree.contains(joinCondition)) {
                 // check if it can be joined
-                System.out.println("\nChecking against the following condition (not flipped yet)");
+                System.out.println("\nChecking against the following condition");
                 Debug.PPrint(joinCondition);
 
                 String rightTableName = ((Attribute)joinCondition.getRhs()).getTabName();
@@ -148,7 +167,7 @@ public class DPoptimizer {
             }
         }
 
-        // this should return at least one: otherwise, you cannot produce the full result
+        // this should return at least one: otherwise, we cannot grow the subtree to produce the full result
         return possibleJoinConditions;
     }
 
@@ -161,7 +180,7 @@ public class DPoptimizer {
     /**
      * This method creates two-table joins later to be used as the starting point for the Dynamic Programming in getBestPlan.
      */
-    private void computeJoinRelationPlan() {
+    private void computeBaseJoinRelationPlan() {
         for (Condition cOriginal: joinConditions) {
             Condition c = (Condition) cOriginal.clone();
             Operator rightOp = util.getOperator(((Attribute)c.getRhs()).getTabName());
@@ -184,8 +203,8 @@ public class DPoptimizer {
             int costFlippedJoin = tryEachJoinMethod(flippedJoin);
             HashSet<Condition> hs = new HashSet<>();
 
-            System.out.println("\ncomputeJoinRelationPlan: CostMap contains ");
-            if (cost < costFlippedJoin) {
+            System.out.println("\ncomputeBaseJoinRelationPlan: CostMap contains ");
+            if (cost <= costFlippedJoin) {
                 c.flip(); // flip it back
                 hs.add(c);
                 costMap.put(hs, cost);
@@ -207,6 +226,9 @@ public class DPoptimizer {
     }
 
     /**
+     * Tries different types of join methods on a given join operator to calculate
+     * the minimum cost. The join method type of the given operator will be set to the one
+     * which yields the minimum cost.
      * @param root root of the tree to calculate the cost
      * @return the cost of the tree with best join method for the top-most join
      */
@@ -229,7 +251,7 @@ public class DPoptimizer {
         return minCost;
     }
 
-    public Operator createProjectOp(Operator root) { // currently, no push-down of selection and projection
+    public Operator createProjectOp(Operator root) { // currently, no push-down of projection
         Vector<Attribute> projectlist = util.getProjectlist();
         Operator base = root;
 
@@ -239,6 +261,16 @@ public class DPoptimizer {
             root.setSchema(newSchema);
         }
 
+        return root;
+    }
+
+    /**
+     * Create OrderBy Operator for the attributes mentioned in from list
+     **/
+    public Operator createOrderByOp(Operator root) {
+        Operator base = root;
+        root = new OrderBy(base, util.getOrderbyList(), OpType.ORDERBY);
+        root.setSchema(base.getSchema());
         return root;
     }
 

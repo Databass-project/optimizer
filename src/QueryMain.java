@@ -32,9 +32,6 @@ public class QueryMain {
         boolean runRandomized = true;
         Operator root;
         if (runRandomized) {
-            /* This is the part we are interested in */
-            /* Use random Optimization algorithm to get a random optimized execution plan */
-
             RandomOptimizer ro = new RandomOptimizer(sqlquery);
             Operator logicalroot = ro.getOptimizedPlan();
 
@@ -43,7 +40,6 @@ public class QueryMain {
                 System.exit(1);
             }
 
-            /* preparing the execution plan */
             root = RandomOptimizer.makeExecPlan(logicalroot);
             Debug.printRed(DPoptimizer.getTreeRepresentation(root));
         } else {
