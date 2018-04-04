@@ -204,7 +204,7 @@ public class DPoptimizer {
             HashSet<Condition> hs = new HashSet<>();
 
             System.out.println("\ncomputeBaseJoinRelationPlan: CostMap contains ");
-            if (cost <= costFlippedJoin) {
+            if (cost < costFlippedJoin) {
                 c.flip(); // flip it back
                 hs.add(c);
                 costMap.put(hs, cost);
