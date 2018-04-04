@@ -114,7 +114,6 @@ public final class SortMerge extends Join {
     }
 
     public Batch next() { // properly close input stream
-        Debug.printBold("next() is called");
     	if (endOfJoin) {
             close();
             return null;
@@ -127,17 +126,16 @@ public final class SortMerge extends Join {
                 nextLeftBatch();
         		nextRightBlock();
         	}
-            Debug.printBold("Inside next() 130");
         	Tuple lefttuple;
         	Tuple righttuple;
         	int compareTuples;
 	        while (!outBatch.isFull()) {
-                Debug.printBold("Inside next() 135");
 	        	do {
 	        		lefttuple = leftBatch.elementAt(lcurs);
 
-	        		if ((lastTuple != null) && lefttuple.checkJoin(lastTuple, leftindex, leftindex)) {
+	        		if ((lastTuple != null) && lefttuple.checkJoin(lastTuple, leftindex, leftindex)) { // might go back not necessary
 	        			seekToTuple();
+	        			lastTuple = null;
 	        		}
 	        		righttuple = rightBlock.elementAt(rcurs);
 
@@ -145,11 +143,11 @@ public final class SortMerge extends Join {
                     if (compareTuples > 0) {
                     	if (updatercurs()) {
                     		if (outBatch.isEmpty()) {
-                   			 return null;
-                   		 } else {
-                   			 endOfJoin = true;
-                   			 return outBatch;
-                   		 }
+                   			 	return null;
+	                   		 } else {
+	                   			 endOfJoin = true; // incorrect
+	                   			 return outBatch;
+	                   		 }
                     	}
                     } else if (compareTuples < 0) {
                     	 if (updatelcurs(lefttuple)) {
@@ -176,12 +174,8 @@ public final class SortMerge extends Join {
             	} else {
             		if (eosr || updatercurs()) {
             			if (updatelcurs(lefttuple)) {
-		        			if (outBatch.isEmpty()) {
-		               			 return null;
-		               		} else {
-		               			 endOfJoin = true;
-		               			 return outBatch;
-		               		}
+		        			endOfJoin = true;
+		        			return outBatch;
             			}
             		}
             	}
@@ -271,6 +265,7 @@ public final class SortMerge extends Join {
     // this seeks BACK to previous blocks in case the next left tuple  = previous left
     private void seekToTuple() throws IOException, ClassNotFoundException {
     	if (numBlocksRead != equalityBlockIndex) {
+    		eosr = false;
 			sortedRight.close();
 			sortedRight = new ObjectInputStream(new FileInputStream(rfname));
 			numBlocksRead = 0;
