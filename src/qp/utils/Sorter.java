@@ -15,20 +15,27 @@ import qp.operators.Operator;
 
 public final class Sorter {
 	
-	private final Operator base;
-	private final int numBuff;
-	private final int batchSize;
-	private final Comparator<Tuple> cmp;
+	private final Operator base;				// The operator that generates the table to sort
+	private final int numBuff;					// The number of buffers that can be used 
+	private final int batchSize;				// The number of buffers that can be used
+	private final Comparator<Tuple> cmp;		// Defines how tuples are compared
 	
-	private int numPages;
-	private String sortedName;
+	private int numPages;						// The number of pages of the materialized table
+	private String sortedName;					// The file-name of the materialized, sorted file
 	
-	private static int filenum = 0;
-	private LinkedList<String> runfNames;
-	private LinkedList<String> filesCreated;
+	private static int filenum = 0;				// To get unique filenum for this operation
+	private LinkedList<String> runfNames;		// Sorted runs file-names
+	private LinkedList<String> filesCreated;	// Names of all the files created during sorting process
 	
-	/* PUBLIC INTERFACE */
+	/* =============================== PUBLIC INTERFACE =============================== */ 
 	
+	/**
+	 * Creates a new Sorter, which will sort and materialize the table produced by base
+	 * @param base, the operator that generates the table to sort
+	 * @param numBuff, the number of buffers that can be used 
+	 * @param batchSize, the number of tuples per buffer
+	 * @param cmp, which defines how tuples are compared
+	 */
 	public Sorter(Operator base, int numBuff, int batchSize, Comparator<Tuple> cmp) {
 		this.base = base;
 		this.numBuff = numBuff;
@@ -40,6 +47,9 @@ public final class Sorter {
 		filesCreated = new LinkedList<>();
 	}
 	
+	/**
+     * @return true if the table was properly sorted and materialized
+     */
 	public boolean sortedFile() {
 		if (sortedRuns()) {
 			boolean sorted = mergeSort();
@@ -56,14 +66,23 @@ public final class Sorter {
 		}
 	}
 	
+	/**
+     * @return the number of pages of the materialized table
+     */
 	public int getNumPages() {
 		return numPages;
 	}
 	
+	/**
+     * @return the file-name of the materialized, sorted file
+     */
 	public String getSortedName() {
 		return sortedName;
 	}
 	
+	/**
+     * Helper method that prints a file's content
+     */
 	public void showFileContent(String fname, int numPages, int attrIndex) { // helper method
     	int tupleNumber = 0;
     	
@@ -97,7 +116,8 @@ public final class Sorter {
 		System.out.println("=================================================");
     }
 	
-	/* PRIVATE METHODS */
+	/* =============================== PRIVATE METHODS =============================== */ 
+
 	
 	private String temporaryFileName() {
     	filenum++;
@@ -105,7 +125,7 @@ public final class Sorter {
         filesCreated.add(filename);
     	return filename;
     }
-	
+
 	private void writeBlockToFile(ObjectOutputStream out, Batch nextBlock) throws IOException {
     	Batch outBatch = new Batch(batchSize);
     	
@@ -122,7 +142,7 @@ public final class Sorter {
 			out.writeObject(outBatch);
 		}
     }
-    
+   
     private void nextSortedRun(Batch nextBlock) throws IOException {
     	Collections.sort(nextBlock.getTuples(),cmp); 
     	String tmpfname = temporaryFileName();
@@ -150,7 +170,7 @@ public final class Sorter {
 	            		nextBlock = new Batch(numBuff*batchSize);
 	                }
 	                
-	                for(Tuple nextTuple: nextBatch.getTuples()) { // All pages of size batchsize
+	                for(Tuple nextTuple: nextBatch.getTuples()) { 
 	                	nextBlock.add(nextTuple);
 	                }
 	                numPages += 1;
@@ -265,6 +285,9 @@ public final class Sorter {
 		} 
     }
     
+    /**
+     * @return true if the table was properly sorted and materialized
+     */
     private boolean mergeSort() {
     	try {
     	    mergePhase();
@@ -279,7 +302,10 @@ public final class Sorter {
         } 
     }
     
-    private void close() { // don't delete sorted file
+    /**
+     * Deletes the files created during sorting process
+     */
+    private void close() { 
 		for (String fname: filesCreated) { 
     		File f = new File(fname);
     	    f.delete();
