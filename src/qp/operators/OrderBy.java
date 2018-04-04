@@ -21,19 +21,18 @@ public class OrderBy extends Operator{
     
     private String fName;
     private ObjectInputStream in; // Sorted base file being scanned
-    private boolean eosb = false;
+    private boolean eosb;
     
     /* PUBLIC INTERFACE */
 
-    public OrderBy(Operator base, Vector as, int type){
+    public OrderBy(Operator base, Vector as, int type) {
 		super(type);
 		this.base = base;
 		this.attrSet = as;
-		eosb = true;
     }
 
-    public void setNumBuff(int num) {
-        this.numBuff = num;
+    public void setNumBuff(int numBuff) {
+        this.numBuff = numBuff;
     }
     
     public int getNumBuff() {
@@ -74,11 +73,11 @@ public class OrderBy extends Operator{
 				fName = sorter.getSortedName();
 				in = new ObjectInputStream(new FileInputStream(fName));
 				eosb = false;
+				return true;
 			} catch (IOException e) {
 				System.out.print("OrderBy: file opening error");
 				return false;
 			}
-			return true;
 		} else {
 			return false;
 		}

@@ -43,10 +43,14 @@ public final class Sorter {
 	public boolean sortedFile() {
 		if (sortedRuns()) {
 			boolean sorted = mergeSort();
-			sortedName = runfNames.removeFirst();
-			filesCreated.removeLast(); // explain
-			close();
-			return sorted; 
+			if(sorted) {
+				sortedName = runfNames.removeFirst();
+				filesCreated.removeLast(); // explain
+				close();
+				return true;
+			} else {
+				return false;
+			}
 		} else {
 			return false;
 		}
@@ -59,6 +63,45 @@ public final class Sorter {
 	public String getSortedName() {
 		return sortedName;
 	}
+	
+	public int showFileContent(String fname, int numPages, int attrIndex) { // helper method
+    	int tupleNumber = 0;
+    	
+    	try {
+    		
+			ObjectInputStream in = new ObjectInputStream(new FileInputStream(fname));
+			
+			for (int batchIndex = 0; batchIndex < numPages; batchIndex++) {
+					Batch nextBatch = (Batch) in.readObject();
+				
+					for (Tuple nextTuple: nextBatch.getTuples()) {
+						System.out.println("Tuple Nr. " + tupleNumber++);
+						Object leftdata = nextTuple.dataAt(attrIndex);
+		        		if (leftdata instanceof Integer){
+		        		    System.out.println((Integer) leftdata);
+		        		} else if(leftdata instanceof String){
+		        			System.out.println((String) leftdata);
+		
+		        		} else if(leftdata instanceof Float){
+		        			System.out.println((Float) leftdata);
+		        		}
+					}
+				
+			}
+			in.close();
+			
+			System.out.println("=================================================");
+    	} catch (EOFException eof){
+			return tupleNumber;
+		} catch (IOException io) {
+			io.printStackTrace();
+			return 0;
+		} catch (ClassNotFoundException cnf) {
+			cnf.printStackTrace();
+			return 0;
+		}
+		return tupleNumber;
+    }
 	
 	/* PRIVATE METHODS */
 	
@@ -162,16 +205,6 @@ public final class Sorter {
 			inBatches[runIndex] = ((Batch) nextStream.readObject()); // should be fine
 			runFiles[runIndex] = nextStream;
 		}
-    }
-    
-    private void closeStreams(ObjectInputStream[] runFiles) { // use this method to properly close resources
-    	for (ObjectInputStream nextStream: runFiles) {
-    		try {
-				nextStream.close();
-			} catch (IOException e) {
-				System.out.print("Sorter: temporary file closing error");
-			}
-    	}
     }
     
     private void mergeRuns(ObjectOutputStream out, Batch[] inBatches, int runSize, int numToRead) 
