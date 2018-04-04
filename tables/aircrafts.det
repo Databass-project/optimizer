@@ -1,5 +1,5 @@
 3
 28
-aid INTEGER 10000 PK 4
+aid INTEGER 50000 PK 4
 aname STRING 10 NK 20
-cruisingrande INTEGER 30000 NK 4
+cruisingrandge INTEGER 20000 NK 4
