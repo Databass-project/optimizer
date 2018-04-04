@@ -13,7 +13,7 @@ public class BufferManager {
         buffPerJoinOrOrderBy = numBuffer / numJoinOrOrderBy;
     }
 
-    public static int getBuffersPerJoinOrOrderBy() {
+    public static int getBuffersPerJoin() {
         return buffPerJoinOrOrderBy;
     }
 }

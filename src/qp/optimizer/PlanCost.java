@@ -117,24 +117,25 @@ public class PlanCost {
         attrToV.put(leftjoinAttr, minDistinct);
         attrToV.put(leftjoinAttr, minDistinct);
 
-
         /* now calculate the cost of the operation */
         int joinType = node.getJoinType();
         /* number of buffers allotted to this join */
-        int numbuff = BufferManager.getBuffersPerJoinOrOrderBy();
+        int numbuff = BufferManager.getBuffersPerJoin();
+        if (numbuff == 0) {
+            System.out.println("#buffers is not set. Exiting code");
+            System.exit(1);
+        }
         int joincost;
-//        Debug.printPurple("#tuples per page on left = " + numTuplesPerPageForLeft + " #tuples per page on right = " + numTuplesPerPageForRight + "\n");
-//        Debug.printPurple("left tuples = " + lefttuples + " right tuples = " +  righttuples + "\n");
         Debug.printPurple("left pages = " + leftpages + " right pages = " + rightpages + "\n");
         switch (joinType) {
             case JoinType.NESTEDJOIN:
-                joincost = leftpages + leftpages * rightpages;
+                joincost = leftpages + (leftpages * rightpages);
                 break;
             case JoinType.BLOCKNESTED:
                 joincost = leftpages + (int) (Math.ceil((double) leftpages / (numbuff - 2))) * rightpages;
                 break;
             case JoinType.SORTMERGE:
-                joincost = 0;
+                joincost =  3 * (leftpages + rightpages);
                 break;
             case JoinType.HASHJOIN:
                 joincost = 0;

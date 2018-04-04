@@ -303,7 +303,7 @@ public class DPoptimizer {
             Operator left = makeExecPlan(((Join) node).getLeft());
             Operator right = makeExecPlan(((Join) node).getRight());
             int joinType = ((Join) node).getJoinType();
-            int numbuff = BufferManager.getBuffersPerJoinOrOrderBy();
+            int numbuff = BufferManager.getBuffersPerJoin();
             Join joinOperator;
             switch (joinType) {
                 case JoinType.NESTEDJOIN:
@@ -335,7 +335,7 @@ public class DPoptimizer {
             OrderBy ob = (OrderBy) node;
             Operator base = makeExecPlan(ob.getBase());
             ob.setBase(base);
-            int numbuff = BufferManager.getBuffersPerJoinOrOrderBy();
+            int numbuff = BufferManager.getBuffersPerJoin();
             ob.setNumBuff(numbuff);
             return ob;
         } else {

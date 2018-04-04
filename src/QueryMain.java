@@ -27,8 +27,8 @@ public class QueryMain {
         String resultfile = args[1];
         SQLQuery sqlquery = getSqlQuery(queryfile);
 
-        int numJoinOrOrderBy = sqlquery.getNumJoin() + ((sqlquery.getNumOrderBy() > 0) ? 1 : 0);
-        BufferManager bm = setNumBuffers(in, numJoinOrOrderBy);
+        int numJoin = sqlquery.getNumJoin();
+        BufferManager bm = setNumBuffers(in, numJoin);
         boolean runRandomized = false;
         Operator root;
         if (runRandomized) {
@@ -106,7 +106,7 @@ public class QueryMain {
         }
 
         /* Check the number of buffers available is enough */
-        int numBuff = BufferManager.getBuffersPerJoinOrOrderBy();
+        int numBuff = BufferManager.getBuffersPerJoin();
         if (numJoin > 0 && numBuff < 3) {
             System.out.println("Minimum 3 buffers are required per join operator ");
             System.exit(1);

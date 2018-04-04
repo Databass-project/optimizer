@@ -12,10 +12,6 @@ import qp.utils.*;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.TreeMap;
-
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -26,7 +22,8 @@ public class Experiment {
     @Rule
     public TemporaryFolder saveFolder = new TemporaryFolder();
     private String folderRoot;
-    private String[] queryFiles = {"q1", "q2", "q3" };
+//    private String[] queryFiles = {"q1", "q2", "q3", "q4" };
+    private String[] queryFiles = { "query1_1", "query1_2", "query1_3" };
     private ArrayList<SQLQuery> sqlQueries = new ArrayList<>();
     private PrintWriter out;
     private int numAtts;
@@ -41,7 +38,6 @@ public class Experiment {
     public void setUp() {
         for (String file: queryFiles) {
             sqlQueries.add(QueryMain.getSqlQuery(file));
-
         }
         Batch.setPageSize(10000); // bytes per page
         folderRoot = saveFolder.getRoot().getPath();
@@ -52,8 +48,17 @@ public class Experiment {
         for (int i = 0; i < sqlQueries.size()-1; i++) {
             Debug.printBold("Experiment 1-" + (i+1));
             SQLQuery query = sqlQueries.get(i);
-            BufferManager.numJoin = query.getNumJoin(); // no orderby inside the experiment
+            if (query.getNumJoin() > 0) {
+                BufferManager bf = new BufferManager(1000, query.getNumJoin());
+            }
 
+            // do block nested first
+            JoinType.setNumJoinTypes(2);
+            System.out.println("It took " + computeQueryPerformance(query) + " for Experiment 1-" + (i+1) + " under block nested join");
+
+            // do sort merge next
+            JoinType.setNumJoinTypes(3);
+            System.out.println("It took " + computeQueryPerformance(query) + " for Experiment 1-" + (i+1) + " under sort merge join");
         }
 
         assertTrue("Experiment 1 is complete", true);
@@ -63,14 +68,25 @@ public class Experiment {
     public void Experiment2() throws Exception {
         Debug.printBold("Experiment 2");
         SQLQuery query = sqlQueries.get(sqlQueries.size()-1); // set experiment2 query to be the last one
-        BufferManager.numJoin = query.getNumJoin();
+        BufferManager bf = new BufferManager(1000, query.getNumJoin());
+
+        JoinType.setNumJoinTypes(1);
+        System.out.println("It took " + computeQueryPerformance(query) + " for Experiment 1 with PNJ");
+
+        // do block nested first
         JoinType.setNumJoinTypes(2);
+        System.out.println("It took " + computeQueryPerformance(query) + " for Experiment 2 with BNJ");
+
+        // do sort merge next
+        JoinType.setNumJoinTypes(3);
+        System.out.println("It took " + computeQueryPerformance(query) + " for Experiment 2 with MSJ");
 
         assertTrue("Experiment 2 is complete", true);
     }
 
     private double computeQueryPerformance(SQLQuery query) throws IOException {
-        String saveLocation = folderRoot + fileNo++;
+        String saveLocation = folderRoot + ("FILE" + fileNo);
+        fileNo++;
         Operator root;
         if (toTest == testType.Random)
             root = runRandomOptimizer(query);
@@ -81,6 +97,7 @@ public class Experiment {
         System.out.println();
         out = new PrintWriter(new BufferedWriter(new FileWriter(saveLocation)));
         long starttime = System.currentTimeMillis();
+        root.open(); // this MUST be called
         writeResultToFile(root);
         out.close();
         long endtime = System.currentTimeMillis();
@@ -100,6 +117,7 @@ public class Experiment {
     }
 
     public void writeResultToFile(Operator root) {
+        Debug.printWithLines(true, "WriteResultToFile");
         Schema schema = root.getSchema();
         numAtts = schema.getNumCols();
         printSchema(schema);
@@ -111,11 +129,13 @@ public class Experiment {
             for (int i = 0; i < resultbatch.size(); i++) {
                 printTuple(resultbatch.elementAt(i));
                 tupleCount++;
+
             }
         }
         Debug.printBold("#tuples = " + tupleCount);
         root.close();
     }
+
 
     protected void printSchema(Schema schema) {
         StringBuilder sb = new StringBuilder();
