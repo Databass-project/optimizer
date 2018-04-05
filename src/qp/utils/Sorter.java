@@ -48,14 +48,15 @@ public final class Sorter {
 	}
 	
 	/**
+	 * Sorts and materializes the input table, saves the sorted file name and number of pages
      * @return true if the table was properly sorted and materialized
      */
 	public boolean sortedFile() {
 		if (sortedRuns()) {
-			boolean sorted = mergeSort();
+			boolean sorted = mergePhase();
 			if(sorted) {
 				sortedName = runfNames.removeFirst();
-				filesCreated.removeLast(); // explain
+				filesCreated.removeLast(); // sorted file should not be deleted in close()
 				close();
 				return true;
 			} else {
@@ -83,7 +84,7 @@ public final class Sorter {
 	/**
      * Helper method that prints a file's content
      */
-	public void showFileContent(String fname, int numPages, int attrIndex) { // helper method
+	public void showFileContent(String fname, int numPages, int attrIndex) { 
     	int tupleNumber = 0;
     	
     	try {
@@ -110,7 +111,7 @@ public final class Sorter {
 			in.close();
 			
     	} catch (Exception e) {
-    		
+    		// nothing should be done here
     	}
 		System.out.println("Number of tuples: " + tupleNumber);
 		System.out.println("=================================================");
@@ -118,14 +119,21 @@ public final class Sorter {
 	
 	/* =============================== PRIVATE METHODS =============================== */ 
 
-	
+	/**
+	 * @return a new temporary-file-name
+	 */
 	private String temporaryFileName() {
     	filenum++;
         String filename = "SorterTemp-" + String.valueOf(filenum);
         filesCreated.add(filename);
     	return filename;
     }
-
+	
+	/**
+	 * Writes a block of pages to a file
+	 * @param out, the file
+	 * @param nextBlock, numBuff memory pages
+	 */
 	private void writeBlockToFile(ObjectOutputStream out, Batch nextBlock) throws IOException {
     	Batch outBatch = new Batch(batchSize);
     	
@@ -143,6 +151,10 @@ public final class Sorter {
 		}
     }
    
+	/**
+	 * Creates the next sorted run and saves it in a temporary file
+	 * @param nextBlock
+	 */
     private void nextSortedRun(Batch nextBlock) throws IOException {
     	Collections.sort(nextBlock.getTuples(),cmp); 
     	String tmpfname = temporaryFileName();
@@ -152,6 +164,10 @@ public final class Sorter {
 		runfNames.add(tmpfname);
     }
     
+    /**
+     * Generates all the sorted runs
+     * @return true if the sorted runs were correctly created and materialized
+     */
     private boolean sortedRuns()  {
     	if (!base.open()) {
             return false;
@@ -164,7 +180,7 @@ public final class Sorter {
     	try {
 	    	Batch nextBatch;
 	        while ((nextBatch = base.next()) != null) {
-	        	if (nextBatch.size() > 0) { // why necessary? bug
+	        	if (nextBatch.size() > 0) { 
 	                if(nextBlock.isFull()) {
 	                	nextSortedRun(nextBlock);
 	            		nextBlock = new Batch(numBuff*batchSize);
@@ -190,6 +206,12 @@ public final class Sorter {
         return true;
     }
     
+    /**
+     * Finds the buffer-index in memory of the buffer that contains the smallest tuple
+     * @param inBatches, (numBuff-1) memory buffers, where we save the pages of runs to be merged
+     * @param numToRead, the number of valid memory buffers (valid: not from previous iteration)
+     * @return -1 if all the tuples were read, else the buffer-index
+     */
     private int minTupleIndex(Batch[] inBatches, int numToRead) {
     	Tuple minTuple = null;
     	int minTupleIndex = -1;
@@ -210,17 +232,29 @@ public final class Sorter {
     	return minTupleIndex;
     }
     
+    /**
+     * Loads the numToRead sorted runs into memory, and reads their first pages
+     * @param runFiles, array of file-pointers of the files that contain the runs to be merged
+     * @param inBatches, (numBuff-1) memory buffers
+     * @param numToRead, the number of runs to merge
+     */
     private void writeRunsToMemory(ObjectInputStream[] runFiles, Batch[] inBatches, int numToRead) 
     		throws IOException, ClassNotFoundException {
 
     	for (int runIndex = 0; runIndex < numToRead; runIndex++) {
-			@SuppressWarnings("resource") // nextStream closed in mergeRuns
-			ObjectInputStream nextStream = new ObjectInputStream(new FileInputStream(runfNames.remove())); 
-			inBatches[runIndex] = ((Batch) nextStream.readObject()); // should be fine
+			ObjectInputStream nextStream = new ObjectInputStream(new FileInputStream(runfNames.remove())); // closed later
+			inBatches[runIndex] = ((Batch) nextStream.readObject()); 
 			runFiles[runIndex] = nextStream;
 		}
     }
     
+    /**
+     * Merge numToRead runs
+     * @param out, the temporary file where the merged runs are saved
+     * @param inBatches, (numBuff-1) memory buffers
+     * @param runSize, the current size (in pages) of a sorted run
+     * @param numToRead, the number of runs to merge
+     */
     private void mergeRuns(ObjectOutputStream out, Batch[] inBatches, int runSize, int numToRead) 
     		throws IOException, ClassNotFoundException {
     	
@@ -262,38 +296,34 @@ public final class Sorter {
     	}
     }
     
-    private void mergePhase() throws IOException, ClassNotFoundException {
-    	Batch[] inBatches = new Batch[numBuff-1]; // define a constant 
-		
-    	int runSize = numBuff; // number of batches in a sorted run
-		while (runSize < numPages) { 
-			
-			int leftToMerge = runfNames.size();
-			while (leftToMerge > 1) {
-				
-				int numToRead = (leftToMerge <= (numBuff-1))? leftToMerge : (numBuff-1);
-				
-				String mergedName = temporaryFileName(); 
-				ObjectOutputStream mergedRuns = new ObjectOutputStream(new FileOutputStream(mergedName));
-				mergeRuns(mergedRuns, inBatches, runSize, numToRead);
-				mergedRuns.close();
-				runfNames.add(mergedName); // explain
-				
-				leftToMerge -= numToRead;
-			}
-			runSize = runSize*(numBuff-1);
-		} 
-    }
-    
     /**
-     * @return true if the table was properly sorted and materialized
+     * merge-part of Multi-way Merge-Sort
+     * @return true if all the sorted runs were merged
      */
-    private boolean mergeSort() {
-    	try {
-    	    mergePhase();
-    		return true;
+    private boolean mergePhase()  {
+    	try { 
+	    	Batch[] inBatches = new Batch[numBuff-1]; 
+			
+	    	int runSize = numBuff; 
+			while (runSize < numPages) { 
+				
+				int leftToMerge = runfNames.size();
+				while (leftToMerge > 1) {
+					
+					int numToRead = (leftToMerge <= (numBuff-1))? leftToMerge : (numBuff-1);
+					
+					String mergedName = temporaryFileName(); 
+					ObjectOutputStream mergedRuns = new ObjectOutputStream(new FileOutputStream(mergedName));
+					mergeRuns(mergedRuns, inBatches, runSize, numToRead);
+					mergedRuns.close();
+					runfNames.add(mergedName); 
+					
+					leftToMerge -= numToRead;
+				}
+				runSize = runSize*(numBuff-1);
+			}
+			return true;
     	} catch (IOException io) {
-    		io.printStackTrace();
             System.out.println("Sorter: temporary file RW error");
             return false;
         } catch (ClassNotFoundException c) {

@@ -15,11 +15,32 @@ The process through which the DP Optimizer computes the optimal plan is as follo
 ##### `OperatorUtils`
 - this class imitates the features of `RandomInitialPlan` class used by `RandomOptimizer`. It provides methods to initialize the single-relation operators such as `Scan` and `Select`, as well as `Project`.
 
-## Join operators
+## Operators
 
-#### `BlockNestedJoin`
+#### Join operators
+
+###### `BlockNestedJoin`
 - This class implements block-nested join which uses B buffers, where 1 buffer is allocated for accumulating join output tuples, 1 buffer for scanning the right table and (B-2) buffers to load tuples from the left table.
 - Rather than simulating B-2 buffers by creating a list/collection of `Batch` object, we simply make one `Batch` object whose capacity = (B-2)*batchsize and mostly reuse the code given in `NestedJoin` class.
+
+###### 'SortMerge'
+- This class implements sort-merge join which uses B buffers. When the left and right tables are opened, they are first sorted (w.r.t the respective join attributes) with the help of the external class `Sorter`, created for this exact purpose, and then materialized, for later use. 
+- The `next` method takes advantage of the fact that the two files are sorted, it loads 1 memory page from the left sorted table, and (B-2) memory pages from the right sorted table at a time into main memory buffers. Class attributes `lcurs` and `rcurs` save the positions of the next tuples (in main memory) from left and right, whose attributes at position `leftindex` and `rightindex` are to be compared. In case of equality, the tuples are joined and added to the output buffer. Given that the input pages are sorted, either `lcurs` or `rcurs` can be set to the next position if (lefttuple &lt; righttuple) or (lefttuple &gt; righttuple) respectively. 
+- Note that another class atribute, `lasttuple`, is needed to be compared to the next left tuple (w.r.t `leftindex`), because it might be necessary to go back in the right sorted table if they are equal and `lasttuple` joined with at least on right tuple.
+
+#### Other operators
+
+###### OrderBy
+- This class implements the ORDERBY operator, which uses B buffers in our implementation for sorting. Again, the input table is sorted and materialized with the help of `Sorter`, with the `compareTo` method comparing tuples based on the attribute list given as input by the user.
+- `next` outputs the sorted pages
+
+## Utils
+
+#### Sorter
+- Helper class, that sorts and materializes an input table, w.r.t a single / a list of attribute(s) (`compareTo` set by the user). Given the memory constraint of B buffers, the sorting algorithm is done in two steps (implements Multi-way Merge-Sort):
+1. First sorted runs are created, a sorted run having max-size B pages. 
+2. Second, the sorted runs are merged, at most (B-1) runs at a time, and this procedure is repeated until there is only a single sorted run left.
+
 
 
 

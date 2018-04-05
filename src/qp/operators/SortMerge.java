@@ -91,6 +91,7 @@ public final class SortMerge extends Join {
         eosr = false;
         endOfJoin = false;
         
+        // Sort and materialize left table and right table
         Sorter lSorter = new Sorter(left, numBuff, lbatchsize, (t1,t2) -> Tuple.compareTuples(t1,t2,leftindex));
 		if (lSorter.sortedFile()) {
 			
@@ -146,14 +147,14 @@ public final class SortMerge extends Join {
 	        		lefttuple = leftBatch.elementAt(lcurs);
 	        		righttuple = rightBlock.elementAt(rcurs);
                     compareTuples = Tuple.compareTuples(lefttuple, righttuple, leftindex, rightindex);
-                    if ((compareTuples > 0) && (updatercurs())) {
+                    if ((compareTuples > 0) && (updatercurs())) { // update rcurs
                     	if (outBatch.isEmpty()) {
                     		return null;
                    		} else {
                    			endOfJoin = true; 
                    			return outBatch;
                    		}
-                    } else if ((compareTuples < 0) && updatelcurs(lefttuple)) {
+                    } else if ((compareTuples < 0) && updatelcurs(lefttuple)) { // update lcurs
                     	if (outBatch.isEmpty()) {
                			 	return null;
                		 	} else {
@@ -165,13 +166,13 @@ public final class SortMerge extends Join {
 	        	
 	        	outBatch.add(lefttuple.joinWith(righttuple));
 	        	
-	        	if (!leftJoined) {
+	        	if (!leftJoined) { // First time lefttuple joins with a right tuple
 	        		joinedBlockIndex = numBlocksRead;
 	        		joindedTupleIndex = rcurs;
 	        		leftJoined = true;
 	        	} 
 	        	
-	        	if (rcurs < (rightBlock.size()-1)) {
+	        	if (rcurs < (rightBlock.size()-1)) { // update rcurs
             		rcurs += 1;
             	} else if ((eosr || updatercurs()) && updatelcurs(lefttuple)) {
         			endOfJoin = true;
@@ -203,10 +204,8 @@ public final class SortMerge extends Join {
     
     
     /* =============================== PRIVATE METHODS =============================== */ 
+   
     
-    /**
-     * 
-     */
     private void getJoinAttrIndex() {
         Attribute leftattr = con.getLhs();
         Attribute rightattr = (Attribute) con.getRhs();
@@ -214,7 +213,10 @@ public final class SortMerge extends Join {
         rightindex = right.getSchema().indexOf(rightattr);
     }
     
+    
     /**
+     * updates lcurs
+     * @param lefttuple, to check if going back in the right table is necessary
      * @return true if lcurs can't be updated
      */
     private boolean updatelcurs(Tuple lefttuple) throws IOException, ClassNotFoundException {
@@ -225,9 +227,10 @@ public final class SortMerge extends Join {
     		return true;
     	}
     	
-    	if ((lasttuple != null) && leftJoined && (Tuple.compareTuples(lefttuple, lasttuple, leftindex) == 0)) {
+    	Tuple nextltuple = leftBatch.elementAt(lcurs);
+    	
+    	if (leftJoined && (Tuple.compareTuples(nextltuple, lasttuple, leftindex) == 0)) {
 			seekToTuple();
-			lasttuple = null;
 		} 
     	
     	leftJoined = false;
@@ -236,6 +239,7 @@ public final class SortMerge extends Join {
     }
     
     /**
+     * Loads next left page into memory
      * @return true if the end of the left file was reached
      */
     private boolean nextLeftBatch() throws IOException, ClassNotFoundException {
@@ -250,6 +254,7 @@ public final class SortMerge extends Join {
     }
     
     /**
+     * updates rcurs
      * @return true if rcurs can't be updated
      */
     private boolean updatercurs() throws IOException, ClassNotFoundException {
@@ -263,6 +268,7 @@ public final class SortMerge extends Join {
     }
     
     /**
+     * Loads the next right block into memory
      * @return true if no more tuples were read into memory
      */
     private boolean nextRightBlock() throws IOException, ClassNotFoundException {
@@ -292,7 +298,7 @@ public final class SortMerge extends Join {
 			sortedRight.close();
 			sortedRight = new ObjectInputStream(new FileInputStream(rfname));
 			numBlocksRead = 0;
-			for (int blockIndex = 0; blockIndex < joinedBlockIndex; blockIndex++) {
+			for (int blockIndex = 1; blockIndex <= joinedBlockIndex; blockIndex++) {
 				nextRightBlock();
 			}
 		}
