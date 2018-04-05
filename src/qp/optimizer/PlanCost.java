@@ -14,7 +14,6 @@ public class PlanCost {
 
     /**
      * If buffers are not enough for a selected join, then this plan is not feasible and return a cost of infinity.
-     * Right not this is never set to false.
      **/
     boolean isFeasible;
 
@@ -97,11 +96,6 @@ public class PlanCost {
         int leftpages = (int) Math.ceil(((double) lefttuples) / (double) numTuplesPerPageForLeft);
         int rightpages = (int) Math.ceil(((double) righttuples) / (double) numTuplesPerPageForRight);
 
-//        Debug.printBold("\nleft schema");
-//        Debug.PPrint(leftschema);
-//        System.out.println();
-//        Debug.printBold("right schema");
-//        Debug.PPrint(rightschema);
         Attribute leftjoinAttr = con.getLhs();
         Attribute rightjoinAttr = (Attribute) con.getRhs();
         int leftattrind = leftschema.indexOf(leftjoinAttr);
@@ -119,14 +113,12 @@ public class PlanCost {
 
         /* now calculate the cost of the operation */
         int joinType = node.getJoinType();
-        /* number of buffers allotted to this join */
         int numbuff = BufferManager.getBuffersPerJoin();
         if (numbuff == 0) {
             System.out.println("#buffers is not set. Exiting code");
             System.exit(1);
         }
         int joincost;
-        Debug.printPurple("left pages = " + leftpages + " right pages = " + rightpages + "\n");
         switch (joinType) {
             case JoinType.NESTEDJOIN:
                 joincost = leftpages + (leftpages * rightpages);
@@ -135,8 +127,10 @@ public class PlanCost {
                 joincost = leftpages + (int) (Math.ceil((double) leftpages / (numbuff - 2))) * rightpages;
                 break;
             case JoinType.SORTMERGE:
-                joincost = 0;
-//                joincost =  3 * (leftpages + rightpages);
+                joincost = 2 * leftpages * (1 + getCeilLog((int) Math.ceil((double)leftpages/ numbuff), numbuff-1));
+                joincost += leftpages;
+                joincost += rightpages;
+                joincost += 2 * rightpages * (1 + getCeilLog((int) Math.ceil((double) rightpages/ numbuff), numbuff-1));
                 break;
             case JoinType.HASHJOIN:
                 joincost = 0;
@@ -275,5 +269,17 @@ public class PlanCost {
         return Integer.parseInt(temp);
     }
 
-
+    /**
+     * @param num x
+     * @param base log base
+     * @return ceiling of log(x) base the number given.
+     */
+    private int getCeilLog(int num, int base) {
+        int ans = 0;
+        while (num > 0) {
+            num /= base;
+            ans++;
+        }
+        return ans;
+    }
 }

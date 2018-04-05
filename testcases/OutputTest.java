@@ -45,7 +45,7 @@ public class OutputTest {
             sqlQueries.add(QueryMain.getSqlQuery(file));
         }
 
-        Batch.setPageSize(10000); // bytes per page
+        Batch.setPageSize(1000); // bytes per page
         folderRoot = saveFolder.getRoot().getPath();
         outputFileToTest = folderRoot + "out-test";
     }
@@ -74,7 +74,7 @@ public class OutputTest {
             Debug.printBold((i+1) + "th iteration");
             SQLQuery query = sqlQueries.get(i);
             if (query.getNumJoin() > 0) {
-                BufferManager bf = new BufferManager(1000, query.getNumJoin());
+                BufferManager bf = new BufferManager(10, query.getNumJoin());
             }
             String resultFile = resultFiles[i];
 

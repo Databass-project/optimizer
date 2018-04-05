@@ -5,16 +5,16 @@ public class BufferManager {
 
     public static int numBuffer;
     public static int numJoin;
-    public static int buffPerJoinOrOrderBy;
+    public static int buffPerJoin;
 
     public BufferManager(int numBuffer, int numJoinOrOrderBy) {
         this.numBuffer = numBuffer;
         this.numJoin = numJoin;
-        buffPerJoinOrOrderBy = numBuffer / numJoinOrOrderBy;
+        buffPerJoin = numBuffer / numJoinOrOrderBy;
     }
 
     public static int getBuffersPerJoin() {
-        return buffPerJoinOrOrderBy;
+        return buffPerJoin;
     }
     
     public static int getBuffers(){

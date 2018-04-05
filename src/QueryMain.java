@@ -71,7 +71,7 @@ public class QueryMain {
         out.close();
 
         long endtime = System.currentTimeMillis();
-        double executiontime = (endtime - starttime) / 1000.0;
+        double executiontime = (endtime - starttime) /  1000.0;
         System.out.println("Execution time = " + executiontime);
     }
 

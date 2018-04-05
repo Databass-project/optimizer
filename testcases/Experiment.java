@@ -12,6 +12,7 @@ import qp.utils.*;
 
 import java.io.*;
 import java.util.ArrayList;
+
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -22,11 +23,13 @@ public class Experiment {
     @Rule
     public TemporaryFolder saveFolder = new TemporaryFolder();
     private String folderRoot;
-    private String[] queryFiles = { "query1_1", "query1_2", "query1_3", "query2_1" };
+    private String[] queryFiles = {"query1_1", "query1_2", "query1_3", "query2_1"};
+    private int[] buffSizes = {10, 50, 100};
     private ArrayList<SQLQuery> sqlQueries = new ArrayList<>();
     private PrintWriter out;
     private int numAtts;
     private int fileNo;
+
     private enum testType {
         Random, DP
     }
@@ -35,39 +38,52 @@ public class Experiment {
 
     @Before
     public void setUp() {
-        for (String file: queryFiles) {
+        for (String file : queryFiles) {
             sqlQueries.add(QueryMain.getSqlQuery(file));
         }
-        Batch.setPageSize(10000); // bytes per page
+        Batch.setPageSize(1000); // bytes per page
         folderRoot = saveFolder.getRoot().getPath();
     }
 
     @Test
     public void Experiment1() throws Exception {
-        for (int i = 0; i < sqlQueries.size()-1; i++) {
-            Debug.printBold("Experiment 1-" + (i+1));
+        for (int i = 0; i < sqlQueries.size() - 1; i++) {
+            Debug.printBold("Experiment 1-" + (i + 1));
             SQLQuery query = sqlQueries.get(i);
             if (query.getNumJoin() > 0) {
-                BufferManager bf = new BufferManager(1000, query.getNumJoin());
+                BufferManager bf = new BufferManager(4, query.getNumJoin());
             }
 
             // do block nested first
             JoinType.setNumJoinTypes(2);
-            System.out.printf("It took %.4f for Experiment 1-%d with BNJ\n", computeQueryPerformance(query), (i+1));
+            System.out.printf("It took %.4f for Experiment 1-%d with BNJ\n", computeQueryPerformance(query), (i + 1));
 
             // do sort merge next
             JoinType.setNumJoinTypes(3);
-            System.out.printf("It took %.4f for Experiment 1-%d with SMJ\n", computeQueryPerformance(query), (i+1));
+            System.out.printf("It took %.4f for Experiment 1-%d with SMJ\n", computeQueryPerformance(query), (i + 1));
         }
 
         assertTrue("Experiment 1 is complete", true);
     }
 
     @Test
+    public void TestNJ() throws Exception {
+        SQLQuery query = sqlQueries.get(0);
+        for (int bsize : buffSizes) {
+            Debug.printBold("Experiment with buffsize = " + bsize);
+            if (query.getNumJoin() > 0) {
+                BufferManager bf = new BufferManager(bsize, query.getNumJoin());
+            }
+            JoinType.setNumJoinTypes(2);
+            System.out.printf("It took %.4f\n", computeQueryPerformance(query));
+        }
+    }
+
+    @Test
     public void Experiment2() throws Exception {
         Debug.printBold("Experiment 2");
-        SQLQuery query = sqlQueries.get(sqlQueries.size()-1); // set experiment2 query to be the last one
-        BufferManager bf = new BufferManager(1000, query.getNumJoin());
+        SQLQuery query = sqlQueries.get(sqlQueries.size() - 1); // set experiment2 query to be the last one
+        BufferManager bf = new BufferManager(100, query.getNumJoin());
 
         // do block nested first
         JoinType.setNumJoinTypes(2);
@@ -151,6 +167,7 @@ public class Experiment {
 
     /**
      * outputs a tuple in the result query into file
+     *
      * @param t tuple
      */
     protected void printTuple(Tuple t) {

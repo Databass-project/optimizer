@@ -39,6 +39,8 @@ public class DPoptimizer {
 
     private OperatorUtils util;
 
+    private boolean DEBUG = false;
+
     public DPoptimizer(SQLQuery query) {
         this.query = query;
         joinConditions = (Vector<Condition>) query.getJoinList();
@@ -65,7 +67,8 @@ public class DPoptimizer {
         }
 
         for (int cardinality = 2; cardinality <= numJoins; cardinality++) {
-            Debug.printBold("\n\ncardinality = " + cardinality + ": " + costMap.size() + " subtrees");
+            if (DEBUG)
+                Debug.printBold("\n\ncardinality = " + cardinality + ": " + costMap.size() + " subtrees");
             HashMap<HashSet<Condition>, Integer> newCostMap = new HashMap<>();
             HashMap<HashSet<Condition>, Operator> newOperatorMap = new HashMap<>();
             HashMap<HashSet<Condition>, HashSet<String>> newTableMap = new HashMap<>();
@@ -91,10 +94,12 @@ public class DPoptimizer {
                         HashSet<String> newTableNames = new HashSet<>(tableMap.get(tree));
                         newTableNames.add(rightTableName);
                         newTableMap.put(newTree, newTableNames);
-                        Debug.printRed("\nUpdate is taking place for joins containing ");
-                        Debug.printHashSet(newTableMap.get(newTree));
-                        Debug.printRed("with cost = " + cost +"\n");
-                    } else {
+                        if (DEBUG) {
+                            Debug.printRed("\nUpdate is taking place for joins containing ");
+                            Debug.printHashSet(newTableMap.get(newTree));
+                            Debug.printRed("with cost = " + cost + "\n");
+                        }
+                    } else if (DEBUG){
                         Debug.printRed("\n" + "Better solution exists with cost = " + newCostMap.get(newTree) + " than this cost = " + cost + " for ");
                         Debug.printHashSet(newTableMap.get(newTree));
                         System.out.println();
@@ -107,17 +112,18 @@ public class DPoptimizer {
             operatorMap = newOperatorMap;
             tableMap = newTableMap;
 
-            printCurrentOperators(operatorMap.values());
         } // end loop
 
         if (operatorMap.size() == 1) {
-            Debug.printBold("\nThe operatorMap contains a unique operator tree");
+            if (DEBUG)
+                Debug.printBold("\nThe operatorMap contains a unique operator tree");
             Operator bestTree = operatorMap.values().iterator().next();
             if (hasOrderBy)
                 bestTree = createOrderByOp(bestTree);
             return createProjectOp(bestTree);
         } else {
-            Debug.printBold("\nThe operatorMap contains more than one operator tree");
+            if (DEBUG)
+                Debug.printBold("\nThe operatorMap contains more than one operator tree");
             return null;
         }
     }
@@ -137,18 +143,22 @@ public class DPoptimizer {
      */
     private ArrayList<Condition> getPossibleJoinConditions(HashSet<Condition> tree) {
         Debug.printWithLines(true, "");
-        Debug.printHashSet(tree);
+        if (DEBUG) {
+            Debug.printHashSet(tree);
+            System.out.println("\nthe tree contains these tables");
+            Debug.printHashSet(tableMap.get(tree));
+        }
         ArrayList<Condition> possibleJoinConditions = new ArrayList<>();
-        System.out.println("\nthe tree contains these tables");
-        Debug.printHashSet(tableMap.get(tree));
 
         for (int i = 0; i < numJoins; i++) {
             Condition joinCondition = joinConditions.get(i);
             // check this join has not been applied to this tree yet
             if (!tree.contains(joinCondition)) {
                 // check if it can be joined
-                System.out.println("\nChecking against the following condition");
-                Debug.PPrint(joinCondition);
+                if (DEBUG) {
+                    System.out.println("\nChecking against the following condition");
+                    Debug.PPrint(joinCondition);
+                }
 
                 String rightTableName = ((Attribute)joinCondition.getRhs()).getTabName();
                 String leftTableName = joinCondition.getLhs().getTabName();
@@ -156,12 +166,14 @@ public class DPoptimizer {
                     joinCondition.flip();
                     Condition clone = (Condition) joinCondition.clone();
                     possibleJoinConditions.add(clone);
-                    Debug.printRed(" <-- adding this condition\n");
+                    if (DEBUG)
+                        Debug.printRed(" <-- adding this condition\n");
                 } else if (tableMap.get(tree).contains(leftTableName)) {
                     Condition clone = (Condition) joinCondition.clone();
                     possibleJoinConditions.add(clone);
-                    Debug.printRed(" <-- adding this condition\n");
-                } else {
+                    if (DEBUG)
+                        Debug.printRed(" <-- adding this condition\n");
+                } else if (DEBUG){
                     System.out.println();
                 }
             }
@@ -188,8 +200,10 @@ public class DPoptimizer {
             Operator join = new Join(leftOp, rightOp, c, OpType.JOIN);
             Schema jointSchema = leftOp.getSchema().joinWith(rightOp.getSchema());
             join.setSchema(jointSchema);
-            Debug.printWithLines(false, "");
-            Debug.printBold("Calculating the cost of join without flipping");
+            if (DEBUG) {
+                Debug.printWithLines(false, "");
+                Debug.printBold("Calculating the cost of join without flipping");
+            }
 //            int cost = new PlanCost().getCost(join);
             int cost = tryEachJoinMethod(join);
 
@@ -198,26 +212,32 @@ public class DPoptimizer {
             Operator flippedJoin = new Join(rightOp, leftOp, c, OpType.JOIN);
             Schema jointSchemaFlipped = rightOp.getSchema().joinWith(leftOp.getSchema());
             flippedJoin.setSchema(jointSchemaFlipped);
-            Debug.printBold("Calculating the cost of join after flipping");
+            if (DEBUG)
+                Debug.printBold("Calculating the cost of join after flipping");
 //            int costFlippedJoin =  new PlanCost().getCost(flippedJoin);
             int costFlippedJoin = tryEachJoinMethod(flippedJoin);
             HashSet<Condition> hs = new HashSet<>();
 
-            System.out.println("\ncomputeBaseJoinRelationPlan: CostMap contains ");
+            if (DEBUG)
+                System.out.println("\ncomputeBaseJoinRelationPlan: CostMap contains ");
             if (cost < costFlippedJoin) {
                 c.flip(); // flip it back
                 hs.add(c);
                 costMap.put(hs, cost);
                 operatorMap.put(hs, join);
-                Debug.PPrint(join);
+                if (DEBUG)
+                    Debug.PPrint(join);
             } else {
                 hs.add(c);
                 costMap.put(hs, costFlippedJoin);
                 operatorMap.put(hs, flippedJoin);
-                Debug.PPrint(flippedJoin);
-                Debug.printRed(" <--- flipped.");
+                if (DEBUG) {
+                    Debug.PPrint(flippedJoin);
+                    Debug.printRed(" <--- flipped.");
+                }
             }
-            Debug.printBold(" cost == " + cost + " vs. flipped cost == " + costFlippedJoin);
+            if (DEBUG)
+                Debug.printBold(" cost == " + cost + " vs. flipped cost == " + costFlippedJoin);
             HashSet<String> tableNames = new HashSet<>();
             tableNames.add(c.getLhs().getTabName());
             tableNames.add(((Attribute)c.getRhs()).getTabName());
@@ -335,7 +355,9 @@ public class DPoptimizer {
             OrderBy ob = (OrderBy) node;
             Operator base = makeExecPlan(ob.getBase());
             ob.setBase(base);
-            int numbuff = BufferManager.getBuffersPerJoin();
+            // since we have to materialize the incoming batches anyways, we can have the entire buffer
+            // to perform the orderby
+            int numbuff = BufferManager.numBuffer;
             ob.setNumBuff(numbuff);
             return ob;
         } else {
