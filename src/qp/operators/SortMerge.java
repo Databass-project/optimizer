@@ -14,11 +14,11 @@ import qp.utils.Sorter;
 import qp.utils.Tuple;
 
 public final class SortMerge extends Join {
-	
-	private int lbatchsize;					// Number of left tuples per batch	
-	private int rbatchsize;					// Number of right tuples per batch	
+
+	private int lbatchsize;					// Number of left tuples per batch
+	private int rbatchsize;					// Number of right tuples per batch
 	private int jbatchsize;					// Number of joined tuples per batch
-	
+
     private int leftindex;     				// Index of the join attribute in left table
     private int rightindex;					// Index of the join attribute in right table
     
@@ -65,7 +65,7 @@ public final class SortMerge extends Join {
         /* select number of tuples per outbatch **/
         int jtuplesize = schema.getTupleSize();
         jbatchsize = Batch.getPageSize() / jtuplesize;
-        
+
         int ltuplesize = left.schema.getTupleSize();
         lbatchsize = Batch.getPageSize() / ltuplesize;
         int rtuplesize = right.schema.getTupleSize();
@@ -76,7 +76,7 @@ public final class SortMerge extends Join {
         /* initialize the cursors of input buffers **/
         lcurs = 0;
         rcurs = 0;
-        
+
         /* initialize the number of tuples read from sorted right file & OTHER **/
         leftBatch = new Batch(lbatchsize);
         numBlocksRead = 0;
@@ -85,32 +85,30 @@ public final class SortMerge extends Join {
         joinedBlockIndex = -1;
         joindedTupleIndex = -1;
         lasttuple = null;
-        
+
         /* Prepare to process the streams  */
         eosl = false;
         eosr = false;
         endOfJoin = false;
-        
-        // Sort and materialize left table and right table
         Sorter lSorter = new Sorter(left, numBuff, lbatchsize, (t1,t2) -> Tuple.compareTuples(t1,t2,leftindex));
 		if (lSorter.sortedFile()) {
-			
+
 			Sorter rSorter = new Sorter(right, numBuff, rbatchsize, (t1,t2) -> Tuple.compareTuples(t1,t2,rightindex));
 			if (rSorter.sortedFile()) {
-				
+
 				try {
 					lfname = lSorter.getSortedName();
 					sortedLeft = new ObjectInputStream(new FileInputStream(lfname));
-					
+
 					rfname = rSorter.getSortedName();
 					sortedRight = new ObjectInputStream(new FileInputStream(rfname));
-					
+
 					return true;
 				} catch(IOException io) {
 					System.out.println("SortMerge: file opening error");
 					return false;
 				}
-				
+
 			} else {
 				return false;
 			}
@@ -127,8 +125,8 @@ public final class SortMerge extends Join {
             close();
             return null;
         }
-        
-        outBatch = new Batch(jbatchsize); 
+
+        outBatch = new Batch(jbatchsize);
 
         try {
         	
@@ -136,13 +134,11 @@ public final class SortMerge extends Join {
                 nextLeftBatch();
         		nextRightBlock();
         	}
-        	
         	Tuple lefttuple;
         	Tuple righttuple;
         	int compareTuples;
         	
 	        while (!outBatch.isFull()) {
-	        	
 	        	do {
 	        		lefttuple = leftBatch.elementAt(lcurs);
 	        		righttuple = rightBlock.elementAt(rcurs);
@@ -163,7 +159,7 @@ public final class SortMerge extends Join {
                		 	}
                     }
 	        	} while(compareTuples != 0);
-	        	
+
 	        	outBatch.add(lefttuple.joinWith(righttuple));
 	        	
 	        	if (!leftJoined) { // First time lefttuple joins with a right tuple
@@ -180,13 +176,13 @@ public final class SortMerge extends Join {
             	} 
 	        }
         } catch (IOException io) {
-            System.out.println("SortMerge: file operation error"); 
+            System.out.println("SortMerge: file operation error");
             System.exit(1);
         } catch (ClassNotFoundException c) {
             System.out.println("SortMerge: deserialization error");
             System.exit(1);
         }
-        
+
         return outBatch;
     }
     
@@ -212,7 +208,6 @@ public final class SortMerge extends Join {
         leftindex = left.getSchema().indexOf(leftattr);
         rightindex = right.getSchema().indexOf(rightattr);
     }
-    
     
     /**
      * updates lcurs
@@ -252,6 +247,7 @@ public final class SortMerge extends Join {
     	}
     	return eosl;
     }
+
     
     /**
      * updates rcurs
@@ -278,7 +274,7 @@ public final class SortMerge extends Join {
     		numBlocksRead += 1;
 	    	while(!rightBlock.isFull()) {
 	    		Batch nextBatch = (Batch) sortedRight.readObject();
-	    		for(Tuple nextTuple: nextBatch.getTuples()) { 
+	    		for(Tuple nextTuple: nextBatch.getTuples()) {
                 	rightBlock.add(nextTuple);
                 }
 	    	}
@@ -304,5 +300,5 @@ public final class SortMerge extends Join {
 		}
 		rcurs = joindedTupleIndex;
     }
-    
+
 }

@@ -27,8 +27,11 @@ public class QueryMain {
         String resultfile = args[1];
         SQLQuery sqlquery = getSqlQuery(queryfile);
 
-        int numJoinOrOrderBy = sqlquery.getNumJoin() + ((sqlquery.getNumOrderBy() > 0) ? 1 : 0);
-        BufferManager bm = setNumBuffers(in, numJoinOrOrderBy);
+        int numJoin = sqlquery.getNumJoin();
+        
+        //orderBy indicated that there is an orderby operation
+        boolean orderBy = sqlquery.getNumOrderBy() > 0;
+        BufferManager bm = setNumBuffers(in, numJoin, orderBy);
         boolean runRandomized = false;
         Operator root;
         if (runRandomized) {
@@ -41,10 +44,9 @@ public class QueryMain {
             }
 
             root = RandomOptimizer.makeExecPlan(logicalroot);
-            Debug.printRed(DPoptimizer.getTreeRepresentation(root));
         } else {
             DPoptimizer dp = new DPoptimizer(sqlquery);
-            root = RandomOptimizer.makeExecPlan(dp.getBestPlan());
+            root = DPoptimizer.makeExecPlan(dp.getBestPlan());
         }
 
         Debug.printWithLines(true,"Execution Plan");
@@ -91,11 +93,11 @@ public class QueryMain {
         root.close();
     }
 
-    private static BufferManager setNumBuffers(BufferedReader in, int numJoin) {
+    private static BufferManager setNumBuffers(BufferedReader in, int numJoin, boolean orderBy) {
         /* If there are joins, then assign buffers to each join operator while preparing the plan */
         /* As buffer manager is not implemented, just input the number of buffers available */
         BufferManager bm = null;
-        if (numJoin != 0) {
+        if (numJoin != 0 || orderBy) {
             System.out.println("enter the number of buffers available");
             try {
                 String temp = in.readLine();
@@ -107,7 +109,7 @@ public class QueryMain {
         }
 
         /* Check the number of buffers available is enough */
-        int numBuff = BufferManager.getBuffersPerJoinOrOrderBy();
+        int numBuff = BufferManager.getBuffersPerJoin();
         if (numJoin > 0 && numBuff < 3) {
             System.out.println("Minimum 3 buffers are required per join operator ");
             System.exit(1);

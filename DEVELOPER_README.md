@@ -30,9 +30,9 @@ The process through which the DP Optimizer computes the optimal plan is as follo
 
 #### Other operators
 
-###### OrderBy
-- This class implements the ORDERBY operator, which uses B buffers in our implementation for sorting. Again, the input table is sorted and materialized with the help of `Sorter`, with the `compareTo` method comparing tuples based on the attribute list given as input by the user.
-- `next` outputs the sorted pages
+###### OrderBy operator
+This class implements the OrderBy operator which order the resultings tuples given a list of attributes. The hard work is done in the open() method which needs to sort all the tuples of the base operator. Then the next() method only needs to retrieve the sorted tuples one batch at a time. Since the sorting operation obviously involves a materialization of the base operator, it is not done in parallel to any other operation. In particular, since the orderby operation is not done in parallel with any join operation, it can use every available buffer to perform the (external) sorting opeation.
+
 
 ## Utils
 
@@ -42,9 +42,14 @@ The process through which the DP Optimizer computes the optimal plan is as follo
 2. Second, the sorted runs are merged, at most (B-1) runs at a time, and this procedure is repeated until there is only a single sorted run left.
 
 
+## Scaner and parser
+The ORDERBY operation was not supported by either the scaner or parser. We modified both of those to support ORDERBY in queries. An example query with an ORDERBY operation would look something like :
 
+SELECT *
+FROM tablename
+ORDERBY tablename.attributeA, tablename.attributeB
 
-
+Which would return the table sorted by attributeA and then by attributeB for tuple with identical attributeA.
 
 
 

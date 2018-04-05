@@ -4,7 +4,6 @@ package qp.optimizer;
 import qp.utils.*;
 import qp.operators.*;
 
-import java.lang.Math;
 import java.util.Vector;
 
 public class RandomOptimizer {
@@ -345,12 +344,11 @@ public class RandomOptimizer {
     /** After finding a choice of method for each operator, prepare an execution plan by replacing the methods with corresponding join operator implementation
      */
     public static Operator makeExecPlan(Operator node) {
-
-        if (node.getOpType() == OpType.JOIN) {
+    	if (node.getOpType() == OpType.JOIN) {
             Operator left = makeExecPlan(((Join) node).getLeft());
             Operator right = makeExecPlan(((Join) node).getRight());
             int joinType = ((Join) node).getJoinType();
-            int numbuff = BufferManager.getBuffersPerJoinOrOrderBy();
+            int numbuff = BufferManager.getBuffersPerJoin();
             Join joinOperator;
             switch (joinType) {
                 case JoinType.NESTEDJOIN:
@@ -382,7 +380,7 @@ public class RandomOptimizer {
         	OrderBy ob = (OrderBy) node;
         	Operator base = makeExecPlan(ob.getBase());
         	ob.setBase(base);
-        	int numbuff = BufferManager.getBuffersPerJoinOrOrderBy();
+        	int numbuff = BufferManager.getBuffers();
         	ob.setNumBuff(numbuff);
             return ob;
         } else {

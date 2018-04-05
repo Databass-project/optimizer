@@ -108,7 +108,7 @@ public class OutputTest {
 
     private Operator runDPOptimizer(SQLQuery query) {
         DPoptimizer dp = new DPoptimizer(query);
-        return RandomOptimizer.makeExecPlan(dp.getBestPlan());
+        return DPoptimizer.makeExecPlan(dp.getBestPlan());
     }
 
     private Operator runRandomOptimizer(SQLQuery query) {

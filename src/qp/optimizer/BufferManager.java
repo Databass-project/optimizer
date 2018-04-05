@@ -5,15 +5,20 @@ public class BufferManager {
 
     public static int numBuffer;
     public static int numJoin;
-    public static int buffPerJoinOrOrderBy;
+    public static int buffPerJoin;
 
-    public BufferManager(int numBuffer, int numJoinOrOrderBy) {
+    public BufferManager(int numBuffer, int numJoin) {
         this.numBuffer = numBuffer;
         this.numJoin = numJoin;
-        buffPerJoinOrOrderBy = numBuffer / numJoinOrOrderBy;
+        if(numJoin != 0)
+        	buffPerJoin= numBuffer / numJoin;
     }
 
-    public static int getBuffersPerJoinOrOrderBy() {
-        return buffPerJoinOrOrderBy;
+    public static int getBuffersPerJoin() {
+        return buffPerJoin;
+    }
+    
+    public static int getBuffers(){
+    	return numBuffer;
     }
 }
