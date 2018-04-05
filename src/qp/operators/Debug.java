@@ -115,6 +115,14 @@ public class Debug {
 
         } else if (optype == OpType.SCAN) {
             System.out.print(((Scan) node).getTabName());
+        } else if (optype == OpType.ORDERBY) {
+            System.out.print("Orderby( ");
+            PPrint(((OrderBy) node).getBase());
+            for (Object a: ((OrderBy) node).getOrdAttr()) {
+                PPrint((Attribute) a);
+                System.out.print(" ");
+            }
+            System.out.print(")");
         }
     }
 

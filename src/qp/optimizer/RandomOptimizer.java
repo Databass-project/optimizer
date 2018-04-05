@@ -344,8 +344,7 @@ public class RandomOptimizer {
     /** After finding a choice of method for each operator, prepare an execution plan by replacing the methods with corresponding join operator implementation
      */
     public static Operator makeExecPlan(Operator node) {
-
-        if (node.getOpType() == OpType.JOIN) {
+    	if (node.getOpType() == OpType.JOIN) {
             Operator left = makeExecPlan(((Join) node).getLeft());
             Operator right = makeExecPlan(((Join) node).getRight());
             int joinType = ((Join) node).getJoinType();

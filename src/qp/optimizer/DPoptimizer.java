@@ -355,9 +355,7 @@ public class DPoptimizer {
             OrderBy ob = (OrderBy) node;
             Operator base = makeExecPlan(ob.getBase());
             ob.setBase(base);
-            // since we have to materialize the incoming batches anyways, we can have the entire buffer
-            // to perform the orderby
-            int numbuff = BufferManager.numBuffer;
+            int numbuff = BufferManager.getBuffers();
             ob.setNumBuff(numbuff);
             return ob;
         } else {

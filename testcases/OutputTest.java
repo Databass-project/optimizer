@@ -64,7 +64,6 @@ public class OutputTest {
 
     @Test
     public void testSortMergeJoin() throws Exception {
-        // the error is the when the join is flipped, it produces different number of tuples after the join
         JoinType.setNumJoinTypes(3);
         compareJoinResults();
     }
@@ -219,8 +218,8 @@ public class OutputTest {
                 Debug.printRed("line1 " + line1);
                 Debug.printBold("line2 " + line2);
             }
-//            if (!line1.equals(line2))
-//                return false;
+            if (!line1.equals(line2))
+                return false;
         }
         String line2 = reader2.readLine();
         if (line2 != null) {
