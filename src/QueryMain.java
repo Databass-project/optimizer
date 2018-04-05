@@ -28,7 +28,10 @@ public class QueryMain {
         SQLQuery sqlquery = getSqlQuery(queryfile);
 
         int numJoin = sqlquery.getNumJoin();
-        BufferManager bm = setNumBuffers(in, numJoin);
+        
+        //orderBy indicated that there is an orderby operation
+        boolean orderBy = sqlquery.getNumOrderBy() > 0;
+        BufferManager bm = setNumBuffers(in, numJoin, orderBy);
         boolean runRandomized = false;
         Operator root;
         if (runRandomized) {
@@ -90,11 +93,11 @@ public class QueryMain {
         root.close();
     }
 
-    private static BufferManager setNumBuffers(BufferedReader in, int numJoin) {
+    private static BufferManager setNumBuffers(BufferedReader in, int numJoin, boolean orderBy) {
         /* If there are joins, then assign buffers to each join operator while preparing the plan */
         /* As buffer manager is not implemented, just input the number of buffers available */
         BufferManager bm = null;
-        if (numJoin != 0) {
+        if (numJoin != 0 || orderBy) {
             System.out.println("enter the number of buffers available");
             try {
                 String temp = in.readLine();
