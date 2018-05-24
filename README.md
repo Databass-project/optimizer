@@ -8,7 +8,7 @@
 
 ### Creating tables
 
-- let the new table be named `new_table` from here onward
+- let the new table be named `new_table` from here onwards
 1. Create `new_table.det` file, specifying its metadata
 2. Run `java RandomDB new_table <num_tuples>`. This will create `new_table.txt`, the actual table, and `new_table.md`, serialized schema file.
 
